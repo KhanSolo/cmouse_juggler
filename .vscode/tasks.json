@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build with clang (mingw64)",
+            "type": "shell",
+            "command": "C:/msys64/mingw64/bin/clang.exe",
+            "args": [
+                "-g",
+                "-O0",
+                "-fno-omit-frame-pointer",
+                "${workspaceFolder}/main.c",
+                "-o",
+                "${workspaceFolder}/build/main.exe",
+                "-Wall",
+                "-luser32",
+                "-lgdi32"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$gcc"
+        }
+    ]
+}
