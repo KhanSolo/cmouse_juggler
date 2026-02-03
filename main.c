@@ -16,7 +16,7 @@ int cyscreen = 100;
 
 DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
 
-    int oldx = 1, oldy = 1;
+    long oldx = 1, oldy = 1;
     BOOL zigzag = TRUE;
 
     while (TRUE) {
@@ -31,20 +31,22 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
         // getting pos
         POINT point;
         BOOL is = GetCursorPos(&point);
-        int curx = (int)point.x;
-        int cury = (int)point.y;
+        if(is == FALSE) break;
+
+        long curx = point.x;
+        long cury = point.y;
 
         int sleepMs = 10000;
         if (abs(curx - oldx) < 5 || abs(cury - oldy) < 5) {
 
             // setting pos
-            int diff = 2 * (zigzag ? 1 : -1);
-            curx = (curx+diff) % cxscreen;
-            cury = (cury+diff) % cyscreen;
-            SetCursorPos(curx, cury);
+            long diff = 2 * (zigzag ? 1 : -1);
+            curx = (curx+diff+cxscreen) % cxscreen;
+            cury = (cury+diff+cyscreen) % cyscreen;
+            SetCursorPos((int)curx, (int)cury);
 
             zigzag = !zigzag;
-            sleepMs = 1000;
+            sleepMs = 2000;
         }
 
         oldx = curx;
@@ -52,7 +54,7 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
         
         wchar_t buffer[64];
         wsprintfW(buffer, L"Координаты: %dx%d", curx, cury);
-        SendMessage(hwnd, WM_SETTEXT, 0, (LPARAM)buffer);
+        SendMessage(hwnd, WM_SETTEXT, 0, (LPARAM)buffer);  // todo ref to PostMessage?
 
         Sleep(sleepMs + rand() % 500);
     }
@@ -110,17 +112,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             PostQuitMessage(0);
             break;
             
+        case WM_CLOSE:
+            DestroyWindow(hwnd);
+            break;
+            
         default:
-            return DefWindowProc(hwnd, uMsg, wParam, lParam);
+            return DefWindowProcW(hwnd, uMsg, wParam, lParam);
     }
     return 0;
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+void GetResolution(int *x, int *y){
+    *x = GetSystemMetrics(SM_CXSCREEN);
+    *y = GetSystemMetrics(SM_CYSCREEN);
+}
 
-    cxscreen = GetSystemMetrics(SM_CXSCREEN);
-    cyscreen = GetSystemMetrics(SM_CYSCREEN);
+void CenterWindow(HWND hwnd) {
+    RECT rc;
+    GetWindowRect(hwnd, &rc);
+    int xPos = (cxscreen - (rc.right - rc.left)) / 2;
+    int yPos = (cyscreen - (rc.bottom - rc.top)) / 2;
+    SetWindowPos(hwnd, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+}
 
+HWND CreateMainWindow(HINSTANCE hInstance) {
     const wchar_t CLASS_NAME[] = L"MouseJugglerWindow";
     
     WNDCLASSW wc = {0};
@@ -131,7 +146,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     
     RegisterClassW(&wc);
-    hwnd = CreateWindowExW(
+    return CreateWindowExW(
         0,
         CLASS_NAME,
         L"Жонглер",
@@ -139,9 +154,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         CW_USEDEFAULT, CW_USEDEFAULT, 400, 150,
         NULL, NULL, hInstance, NULL
     );
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+
+    GetResolution(&cxscreen, &cyscreen);
+
+    hwnd = CreateMainWindow(hInstance);
     
     if (hwnd == NULL) return 0;
     
+    CenterWindow(hwnd);
+
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
     
