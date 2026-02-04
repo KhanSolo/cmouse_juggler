@@ -35,7 +35,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     CreateMainWindow(&appState, hInstance);
     if (NULL == appState.hwnd) return 0;
     
-    SetWindowLongPtr(appState.hwnd, GWLP_USERDATA, (LONG_PTR)&appState); // save a pointer to appState
     CenterWindow(&appState);
 
     ShowWindow(appState.hwnd, nCmdShow);
@@ -72,7 +71,7 @@ void CreateMainWindow(AppState *state, HINSTANCE hInstance) {
         L"Жонглер",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT, WINDOWS_WIDTH, WINDOWS_HEIGHT,
-        NULL, NULL, hInstance, NULL
+        NULL, NULL, hInstance, state
     );
 
     state->hwnd = hwnd;
@@ -95,6 +94,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_CREATE:
             srand(GetTickCount());
             
+            CREATESTRUCTW* cs = (CREATESTRUCTW*)lParam;
+            AppState* state = (AppState*)cs->lpCreateParams;
+            SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)state); // save on creation
+
             hStartButton = CreateWindowW(
                 L"BUTTON", L"Старт",
                 WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
@@ -112,7 +115,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                     hThread = CreateThread(NULL, 0, MouseMoverThread, appState, 0, NULL);
 
                 } else {
-
                     bRunning = FALSE;
                     if (hThread) {
                         WaitForSingleObject(hThread, 2000);
@@ -159,13 +161,16 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
         
         // getting pos
         POINT point;
-        if(FALSE == GetCursorPos(&point)) break;
+        if(FALSE == GetCursorPos(&point)) {
+            bRunning = FALSE;
+            break;
+        }
 
         long curx = point.x;
         long cury = point.y;
 
         int sleepMs = 10000;
-        if (abs(curx - oldx) < 5 || abs(cury - oldy) < 5) {
+        if (abs(curx - oldx) < 5 && abs(cury - oldy) < 5) {
 
             // setting pos
             long diff = 2 * (zigzag ? 1 : -1);
