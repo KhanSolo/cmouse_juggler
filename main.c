@@ -11,7 +11,6 @@
 #define BTN_START_HEIGHT 40
 
 HANDLE hThread = NULL;
-HANDLE hMutex = NULL;
 volatile BOOL bRunning = FALSE;
 HWND hStartButton = NULL;
 
@@ -94,7 +93,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     switch (uMsg) {
 
         case WM_CREATE:
-            hMutex = CreateMutex(NULL, FALSE, NULL);
             srand(GetTickCount());
             
             hStartButton = CreateWindowW(
@@ -107,18 +105,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             
         case WM_COMMAND:
             if ((HWND)lParam == hStartButton) {
-                WaitForSingleObject(hMutex, INFINITE);
 
                 if (!bRunning) {
                     bRunning = TRUE;
-                    ReleaseMutex(hMutex);
                     SetWindowText(hStartButton, L"Стоп");
                     hThread = CreateThread(NULL, 0, MouseMoverThread, appState, 0, NULL);
 
                 } else {
 
                     bRunning = FALSE;
-                    ReleaseMutex(hMutex);
                     if (hThread) {
                         WaitForSingleObject(hThread, 2000);
                         CloseHandle(hThread);
@@ -130,14 +125,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             break;
             
         case WM_DESTROY:
-            WaitForSingleObject(hMutex, INFINITE);
             bRunning = FALSE;
-            ReleaseMutex(hMutex);
             if (hThread) {
                 WaitForSingleObject(hThread, 2000);
                 CloseHandle(hThread);
             }
-            if (hMutex) CloseHandle(hMutex);
+
             PostQuitMessage(0);
             break;
             
@@ -160,12 +153,9 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
 
     while (TRUE) {
 
-        WaitForSingleObject(hMutex, INFINITE);
         if (!bRunning) {
-            ReleaseMutex(hMutex);
             break;
         }
-        ReleaseMutex(hMutex);
         
         // getting pos
         POINT point;
