@@ -4,13 +4,16 @@
 #include <process.h>
 #include <stdlib.h>
 
-#define WINDOWS_WIDTH 360
-#define WINDOWS_HEIGHT 150
-#define BTN_START_WIDTH 280
-#define BTN_START_HEIGHT 40
+#define WINDOWS_WIDTH       360
+#define WINDOWS_HEIGHT      150
+#define BTN_START_WIDTH     280
+#define BTN_START_HEIGHT    40
 
 #define DEFAULT_MS 10000
 #define SHORT_MS 2000
+
+#define WM_THREAD_DONE   (WM_APP + 1)
+#define WM_THREAD_POS    (WM_APP + 2)
 
 typedef struct State {
     int cxscreen;
@@ -87,24 +90,27 @@ void CenterWindow(AppState *appState) {
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     AppState* appState = (AppState*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-
+    
     switch (uMsg) {
+
+        case WM_NCCREATE: { // это событие произойдёт до WM_CREATE, сохраняем state здесь
+            CREATESTRUCTW* cs = (CREATESTRUCTW*)lParam;
+            AppState* state = (AppState*)cs->lpCreateParams;
+            SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)state);
+            return TRUE;
+        }
 
         case WM_CREATE:
             srand(GetTickCount());
-            
-            CREATESTRUCTW* cs = (CREATESTRUCTW*)lParam;
-            AppState* state = (AppState*)cs->lpCreateParams;
-            SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)state); // save on creation
 
-            state->hStartButton = CreateWindowW(
+            appState->hStartButton = CreateWindowW(
                 L"BUTTON", L"Старт",
                 WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
                 30, 30, BTN_START_WIDTH, BTN_START_HEIGHT,
                 hwnd, (HMENU)1, GetModuleHandle(NULL), NULL
             );
 
-            state->hStopEvent = CreateEventW(
+            appState->hStopEvent = CreateEventW(
                 NULL,   // default security
                 TRUE,   // manual-reset
                 TRUE,   // initially signaled (не запущен)
@@ -132,7 +138,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             break;
 
         // -------------------------------------------------
-        case WM_USER + 1:  // Обработка завершения потока (параметр wParam: 0=ошибка, 1=нормальное завершение)
+        case WM_THREAD_DONE:  // Обработка завершения потока (параметр wParam: 0=ошибка, 1=нормальное завершение)
 
             SetEvent(appState->hStopEvent);
             SetWindowText(appState->hStartButton, L"Старт");
@@ -144,14 +150,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
 
             if (appState->hThread) {
-                WaitForSingleObject(appState->hThread, 1000);
+                WaitForSingleObject(appState->hThread, INFINITE);
                 CloseHandle(appState->hThread);
                 appState->hThread = NULL;
             }
         break;
 
         // -------------------------------------------------
-        case WM_USER + 2: {
+        case WM_THREAD_POS: { // событие вывода координат в заголовок
                 wchar_t buffer[32];
                 wsprintfW(buffer, L"Координаты: %ldx%ld", wParam, lParam);
                 SetWindowText(hwnd, buffer);
@@ -166,6 +172,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 CloseHandle(appState->hThread);
             }
 
+            CloseHandle(appState->hStopEvent);
             PostQuitMessage(0);
             break;
         
@@ -199,7 +206,7 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
         POINT curPos;
         if (!GetCursorPos(&curPos)) {
             // Ошибка! Завершаем поток и обновляем UI через PostMessage
-            PostMessage(appState->hwnd, WM_USER + 1, 0, 0);
+            PostMessage(appState->hwnd, WM_THREAD_DONE, 0, 0);
             break;
         }
 
@@ -210,7 +217,11 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
             long diff = 2 * (zigzag ? 1 : -1);
             curPos.x = (curPos.x + diff + appState->cxscreen) % appState->cxscreen;
             curPos.y = (curPos.y + diff + appState->cyscreen) % appState->cyscreen;
-            SetCursorPos((int)curPos.x, (int)curPos.y);
+            if(!SetCursorPos((int)curPos.x, (int)curPos.y)){
+                // Ошибка! Завершаем поток и обновляем UI через PostMessage
+                PostMessage(appState->hwnd, WM_THREAD_DONE, 0, 0);
+                break;
+            }
 
             zigzag = !zigzag;
             sleepMs = SHORT_MS;
@@ -219,7 +230,7 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
         oldPos.x = curPos.x;
         oldPos.y = curPos.y;
         
-        PostMessage(appState->hwnd, WM_USER + 2, (WPARAM)curPos.x, (LPARAM)curPos.y);
+        PostMessage(appState->hwnd, WM_THREAD_POS, (WPARAM)curPos.x, (LPARAM)curPos.y);
 
         // Sleep, но с возможностью прерывания
         if (WaitForSingleObject(appState->hStopEvent, sleepMs) == WAIT_OBJECT_0)
