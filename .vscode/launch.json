@@ -7,9 +7,9 @@
             "name": "Debug",
             "program": "${workspaceFolder}/build/main.exe",
             "args": [], 
-            "cwd": "${workspaceFolder}", // working directoru
+            "cwd": "${workspaceFolder}", // working directory
             "stopOnEntry": false,
-            "preLaunchTask": "Build with clang (mingw64)"
+            "preLaunchTask": "Build with clang (mingw64) (Debug)"
         }
     ]
 }
