@@ -18,7 +18,7 @@ typedef struct State {
     HWND hwnd;
     HWND hStartButton;
     HANDLE hThread;
-    volatile BOOL bRunning;
+    HANDLE hStopEvent;   // <-- событие остановки потока
 } AppState;
 
 void GetResolution(AppState *state);
@@ -103,30 +103,38 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 30, 30, BTN_START_WIDTH, BTN_START_HEIGHT,
                 hwnd, (HMENU)1, GetModuleHandle(NULL), NULL
             );
+
+            state->hStopEvent = CreateEventW(
+                NULL,   // default security
+                TRUE,   // manual-reset
+                TRUE,   // initially signaled (не запущен)
+                NULL
+            );
             break;
-            
+        
+        // -------------------------------------------------
         case WM_COMMAND:
             if ((HWND)lParam == appState->hStartButton) {
 
-                if (!appState->bRunning) {
-                    appState->bRunning = TRUE;
-                    SetWindowText(appState->hStartButton, L"Стоп");
+                if (!appState->hThread) {
+                    ResetEvent(appState->hStopEvent); // разрешаем работу                    
                     appState->hThread = CreateThread(NULL, 0, MouseMoverThread, appState, 0, NULL);
+                    SetWindowText(appState->hStartButton, L"Стоп");
 
                 } else {
-                    appState->bRunning = FALSE;
-                    if (appState->hThread) {
-                        WaitForSingleObject(appState->hThread, 1000);
-                        CloseHandle(appState->hThread);
-                        appState->hThread = NULL;
-                    }
+                    SetEvent(appState->hStopEvent); // сигналим остановку
+                    WaitForSingleObject(appState->hThread, INFINITE);
+                    CloseHandle(appState->hThread);
+                    appState->hThread = NULL;
                     SetWindowText(appState->hStartButton, L"Старт");
                 }
             }
             break;
 
+        // -------------------------------------------------
         case WM_USER + 1:  // Обработка завершения потока (параметр wParam: 0=ошибка, 1=нормальное завершение)
-            appState->bRunning = FALSE;
+
+            SetEvent(appState->hStopEvent);
             SetWindowText(appState->hStartButton, L"Старт");
             
             if (wParam == 0) {
@@ -142,14 +150,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
         break;
 
+        // -------------------------------------------------
         case WM_USER + 2: {
                 wchar_t buffer[32];
                 wsprintfW(buffer, L"Координаты: %ldx%ld", wParam, lParam);
                 SetWindowText(hwnd, buffer);
         } break;
-            
+        
+        // -------------------------------------------------
         case WM_DESTROY:
-            appState->bRunning = FALSE;
+
+            SetEvent(appState->hStopEvent);
             if (appState->hThread) {
                 WaitForSingleObject(appState->hThread, 1000);
                 CloseHandle(appState->hThread);
@@ -157,13 +168,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
             PostQuitMessage(0);
             break;
-            
+        
+        // -------------------------------------------------
         case WM_CLOSE:
             DestroyWindow(hwnd);
             break;
             
-        default:
-            return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+        // -------------------------------------------------
+        default: return DefWindowProcW(hwnd, uMsg, wParam, lParam);
     }
     return 0;
 }
@@ -179,9 +191,10 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
     BOOL zigzag = TRUE;
 
     while (TRUE) {
-        if (!appState->bRunning) {
+
+        // проверяем сигнал остановки
+        if (WaitForSingleObject(appState->hStopEvent, 0) == WAIT_OBJECT_0)
             break;
-        }
 
         POINT curPos;
         if (!GetCursorPos(&curPos)) {
@@ -207,7 +220,10 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
         oldPos.y = curPos.y;
         
         PostMessage(appState->hwnd, WM_USER + 2, (WPARAM)curPos.x, (LPARAM)curPos.y);
-        Sleep(sleepMs + rand() % 500);
+
+        // Sleep, но с возможностью прерывания
+        if (WaitForSingleObject(appState->hStopEvent, sleepMs) == WAIT_OBJECT_0)
+            break;
     }
     return 0;
 }
