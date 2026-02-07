@@ -4,12 +4,12 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug",
-            "program": "${workspaceFolder}/build/main.exe",
-            "args": [], 
-            "cwd": "${workspaceFolder}", // working directory
+            "name": "Debug (clang + lldb)",
+            "program": "${workspaceFolder}/build/debug/main.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
             "stopOnEntry": false,
-            "preLaunchTask": "Build with clang (mingw64) (Debug)"
+            "preLaunchTask": "Build Debug (clang mingw64)"
         }
     ]
 }

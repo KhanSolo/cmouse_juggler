@@ -2,28 +2,84 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build with clang (mingw64) (Debug)",
+            "label": "mkdir build (debug)",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "if not exist build\\debug mkdir build\\debug"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Build Debug (clang mingw64)",
             "type": "shell",
             "command": "C:/msys64/mingw64/bin/clang.exe",
             "args": [
                 "-g",
                 "-O0",
                 "-fno-omit-frame-pointer",
-                "-mwindows", "-municode",
-                "${workspaceFolder}/main.c",
-                "-o",
-                "${workspaceFolder}/build/main.exe",
                 "-Wall",
+                "-Wextra",
+
+                "-mwindows",
+                "-municode",
+
+                "main.c",
+                "-o",
+                "build/debug/main.exe",
+
                 "-luser32",
                 "-lgdi32"
             ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": "mkdir build (debug)",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
+            "problemMatcher": "$gcc"
+        },
+
+        {
+            "label": "mkdir build (release)",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "if not exist build\\release mkdir build\\release"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Build Release (clang mingw64)",
+            "type": "shell",
+            "command": "C:/msys64/mingw64/bin/clang.exe",
+            "args": [
+                "-O2",
+                "-DNDEBUG",
+                "-Wall",
+
+                "-mwindows",
+                "-municode",
+
+                "main.c",
+                "-o",
+                "build/release/main.exe",
+
+                "-luser32",
+                "-lgdi32"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
+            "dependsOn": "mkdir build (release)",
             "problemMatcher": "$gcc"
         }
     ]
