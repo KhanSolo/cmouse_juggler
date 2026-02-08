@@ -60,7 +60,8 @@ void GetResolution(AppState *state){
 
 void CreateMainWindow(AppState *state, HINSTANCE hInstance) {
     const wchar_t CLASS_NAME[] = L"MouseJugglerWindow";
-    
+    const wchar_t HEADER[] = L"Жонглёр";
+
     WNDCLASSW wc = {0};
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
@@ -70,7 +71,7 @@ void CreateMainWindow(AppState *state, HINSTANCE hInstance) {
     
     RegisterClassW(&wc);
     CreateWindowExW(
-        0, CLASS_NAME, L"Жонглёр",
+        0, CLASS_NAME, HEADER,
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT, WINDOWS_WIDTH, WINDOWS_HEIGHT,
         NULL, NULL, hInstance, state
@@ -116,7 +117,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             );
         break;
         
-        // -------------------------------------------------
         case WM_COMMAND:
             if ((HWND)lParam == appState->hStartButton) {
 
@@ -135,7 +135,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
         break;
 
-        // -------------------------------------------------
         case WM_THREAD_DONE:  // Обработка завершения потока (параметр wParam: 0=ошибка, 1=нормальное завершение)
 
             SetEvent(appState->hStopEvent);
@@ -154,14 +153,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
         break;
 
-        // -------------------------------------------------
         case WM_THREAD_POS: { // событие вывода координат в заголовок
                 wchar_t buffer[32];
                 wsprintfW(buffer, L"Координаты: %ldx%ld", wParam, lParam);
                 SetWindowText(hwnd, buffer);
         } break;
     
-        // -------------------------------------------------
         case WM_DESTROY:
 
             SetEvent(appState->hStopEvent);
@@ -174,12 +171,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             PostQuitMessage(0);
         break;
         
-        // -------------------------------------------------
         case WM_CLOSE:
             DestroyWindow(hwnd);
         break;
      
-        // -------------------------------------------------
         default: return DefWindowProcW(hwnd, uMsg, wParam, lParam);
     }
     return 0;
