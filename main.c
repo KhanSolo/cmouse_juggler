@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <process.h>
 #include <stdlib.h>
+#include "manual_reset_event_slim.h"
 
 #define WINDOWS_WIDTH    360
 #define WINDOWS_HEIGHT   150
@@ -13,26 +14,28 @@
 #define SHORT_MS         2000
 #define THRESHOLD        5L
 
-#define WM_THREAD_DONE   (WM_APP + 1)
+#define WM_THREAD_DONE   (WM_APP + 1) // фоновый поток завершился
 #define WM_THREAD_POS    (WM_APP + 2)
 
 typedef struct State {
     int cxscreen;
     int cyscreen;
+
     HWND hwnd;
     HWND hStartButton;
+    // дескриптор потока
     HANDLE hThread;
-    HANDLE hStopEvent;   // событие остановки потока
+    // событие остановки потока, если установлено, то поток завершает работу
+    HANDLE hStopEvent;   
 } AppState;
 
 void GetResolution(AppState *state);
-void CreateMainWindow(AppState *state, HINSTANCE hInstance);
+HWND CreateMainWindow(AppState *state, HINSTANCE hInstance);
 void CenterWindow(AppState *appState);
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI MouseMoverThread(LPVOID lpParam);
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
-
     AppState appState = {0};
 
     GetResolution(&appState);
@@ -58,7 +61,7 @@ void GetResolution(AppState *state){
     state->cyscreen = GetSystemMetrics(SM_CYSCREEN);
 }
 
-void CreateMainWindow(AppState *state, HINSTANCE hInstance) {
+HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, ) {
     const wchar_t CLASS_NAME[] = L"MouseJugglerWindow";
     const wchar_t HEADER[] = L"Жонглёр";
 
@@ -70,7 +73,7 @@ void CreateMainWindow(AppState *state, HINSTANCE hInstance) {
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     
     RegisterClassW(&wc);
-    CreateWindowExW(
+    return CreateWindowExW(
         0, CLASS_NAME, HEADER,
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT, WINDOWS_WIDTH, WINDOWS_HEIGHT,
@@ -193,7 +196,9 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
     BOOL zigzag = TRUE;
 
     while (TRUE) {
-        // проверяем сигнал остановки
+        // проверяем сигнал остановки 
+        // если событие установлено (SetEvent(hStopEvent) в другом потоке)
+        // то выходим из цикла
         if (WaitForSingleObject(appState->hStopEvent, 0) == WAIT_OBJECT_0)
             break;
 
