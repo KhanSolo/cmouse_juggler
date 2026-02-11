@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <process.h>
 #include <stdlib.h>
+#include "appstate.h"
+#include "wndutils.h"
 #include "manual_reset_event_slim.h"
 
 #define WINDOWS_WIDTH    360
@@ -17,29 +19,17 @@
 #define WM_THREAD_DONE   (WM_APP + 1) // фоновый поток завершился
 #define WM_THREAD_POS    (WM_APP + 2)
 
-typedef struct State {
-    int cxscreen;
-    int cyscreen;
-
-    HWND hwnd;
-    HWND hStartButton;
-    // дескриптор потока
-    HANDLE hThread;
-    // событие остановки потока, если установлено, то поток завершает работу
-    HANDLE hStopEvent;   
-} AppState;
-
-void GetResolution(AppState *state);
-HWND CreateMainWindow(AppState *state, HINSTANCE hInstance);
-void CenterWindow(AppState *appState);
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI MouseMoverThread(LPVOID lpParam);
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
+    (void)hPrevInstance;
+    (void)lpCmdLine;
+
     AppState appState = {0};
 
     GetResolution(&appState);
-    CreateMainWindow(&appState, hInstance);
+    CreateMainWindow(&appState, hInstance, L"Жонглёр", WINDOWS_WIDTH, WINDOWS_HEIGHT, WindowProc);
     if (!appState.hwnd) return 0;
     
     CenterWindow(&appState);
@@ -54,39 +44,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     }
     
     return 0;
-}
-
-void GetResolution(AppState *state){
-    state->cxscreen = GetSystemMetrics(SM_CXSCREEN);
-    state->cyscreen = GetSystemMetrics(SM_CYSCREEN);
-}
-
-HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, ) {
-    const wchar_t CLASS_NAME[] = L"MouseJugglerWindow";
-    const wchar_t HEADER[] = L"Жонглёр";
-
-    WNDCLASSW wc = {0};
-    wc.lpfnWndProc = WindowProc;
-    wc.hInstance = hInstance;
-    wc.lpszClassName = CLASS_NAME;
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    
-    RegisterClassW(&wc);
-    return CreateWindowExW(
-        0, CLASS_NAME, HEADER,
-        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, WINDOWS_WIDTH, WINDOWS_HEIGHT,
-        NULL, NULL, hInstance, state
-    );
-}
-
-void CenterWindow(AppState *appState) {
-    RECT rc;
-    GetWindowRect(appState->hwnd, &rc);
-    int xPos = (appState->cxscreen - (int)(rc.right - rc.left)) / 2;
-    int yPos = (appState->cyscreen - (int)(rc.bottom - rc.top)) / 2;
-    SetWindowPos(appState->hwnd, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -138,22 +95,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
         break;
 
-        case WM_THREAD_DONE:  // Обработка завершения потока (параметр wParam: 0=ошибка, 1=нормальное завершение)
-
+        case WM_THREAD_DONE: { // Обработка завершения потока (параметр wParam: 0=ошибка, 1=нормальное завершение)        
             SetEvent(appState->hStopEvent);
             SetWindowText(appState->hStartButton, L"Старт");
             
-            if (wParam == 0) {
-                SetWindowText(hwnd, L"Жонглёр (ошибка доступа)");
-            } else {
-                SetWindowText(hwnd, L"Жонглёр");
-            }
+            const wchar_t hdr_err[] = L"Жонглёр (ошибка доступа)";
+            const wchar_t hdr[] = L"Жонглёр";            
+            SetWindowTextW(hwnd, wParam == 0 ?  hdr_err: hdr);
 
             if (appState->hThread) {
                 WaitForSingleObject(appState->hThread, INFINITE);
                 CloseHandle(appState->hThread);
                 appState->hThread = NULL;
             }
+        }
         break;
 
         case WM_THREAD_POS: { // событие вывода координат в заголовок
