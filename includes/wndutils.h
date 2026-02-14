@@ -3,12 +3,12 @@
 #include <windows.h>
 #include "appstate.h"
 
-void GetResolution(AppState *state){
+static inline void GetResolution(AppState *state){
     state->cxscreen = GetSystemMetrics(SM_CXSCREEN);
     state->cyscreen = GetSystemMetrics(SM_CYSCREEN);
 }
 
-void CenterWindow(AppState *appState) {
+static inline void CenterWindow(AppState *appState) {
     RECT rc;
     GetWindowRect(appState->hwnd, &rc);
     int xPos = (appState->cxscreen - (int)(rc.right - rc.left)) / 2;
@@ -16,7 +16,7 @@ void CenterWindow(AppState *appState) {
     SetWindowPos(appState->hwnd, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
-HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, LPCWSTR lpWindowName, int width, int height, WNDPROC windowProc) {
+static inline HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, LPCWSTR lpWindowName, int width, int height, WNDPROC windowProc) {
     const wchar_t CLASS_NAME[] = L"MouseJugglerWindow";
 
     WNDCLASSW wc = {0};

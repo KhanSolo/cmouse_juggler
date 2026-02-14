@@ -3,9 +3,9 @@
 #include <windows.h>
 #include <process.h>
 #include <stdlib.h>
-#include "appstate.h"
-#include "wndutils.h"
-#include "manual_reset_event_slim.h"
+#include "includes/appstate.h"
+#include "includes/wndutils.h"
+//#include "manual_reset_event_slim.h"
 
 #define WINDOWS_WIDTH    360
 #define WINDOWS_HEIGHT   150
@@ -33,7 +33,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     if (!appState.hwnd) return 0;
     
     CenterWindow(&appState);
-
     ShowWindow(appState.hwnd, nCmdShow);
     UpdateWindow(appState.hwnd);
     
@@ -45,6 +44,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     
     return 0;
 }
+
+/*==============================
+ обработчик событий главного окна
+==============================*/
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     AppState* appState;
@@ -138,7 +141,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     return 0;
 }
 
-BOOL IsNeedToMove(POINT * curPos, POINT * oldPos) {
+
+/*==============================
+ бизнес-логика движения мыши
+==============================*/
+
+static  inline BOOL IsNeedToMove(POINT * curPos, POINT * oldPos) {
     return (
         labs(curPos->x - oldPos->x) < THRESHOLD
      && labs(curPos->y - oldPos->y) < THRESHOLD
