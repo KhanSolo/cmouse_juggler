@@ -5,7 +5,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug (clang + lldb)",
-            "program": "${workspaceFolder}/build/debug/main.exe",
+            "program": "${workspaceFolder}/build/debug/${config:outputFile}",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false,

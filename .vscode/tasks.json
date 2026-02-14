@@ -24,16 +24,11 @@
                 "-fno-omit-frame-pointer",
                 "-Wall",
                 "-Wextra",
+                "-mwindows", "-municode",
 
-                "-mwindows",
-                "-municode",
-
-                "main.c",
-                "-o",
-                "build/debug/${config:outputFile}",
-
-                "-luser32",
-                "-lgdi32"
+                "${config:inputFile}",
+                "-o", "build/debug/${config:outputFile}",
+                "-luser32", "-lgdi32"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -66,16 +61,11 @@
                 "-O2",
                 "-DNDEBUG",
                 "-Wall",
+                "-mwindows", "-municode",
 
-                "-mwindows",
-                "-municode",
-
-                "main.c",
-                "-o",
-                "build/release/${config:outputFile}",
-
-                "-luser32",
-                "-lgdi32"
+                "${config:inputFile}",
+                "-o", "build/release/${config:outputFile}",
+                "-luser32", "-lgdi32"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
