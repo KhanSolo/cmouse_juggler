@@ -5,22 +5,30 @@
 #include <stdlib.h>
 #include "includes/appstate.h"
 #include "includes/wndutils.h"
-//#include "manual_reset_event_slim.h"
+
 
 #define WINDOWS_WIDTH    360
 #define WINDOWS_HEIGHT   150
+#define WINDOWS_HEADER   (L"Жонглёр")
+
 #define BTN_START_WIDTH  280
 #define BTN_START_HEIGHT 40
+#define BTN_START_TEXT   (L"Старт")
+#define BTN_STOP_TEXT    (L"Стоп")
 
 #define DEFAULT_MS       10000
 #define SHORT_MS         2000
 #define THRESHOLD        5L
 
 #define WM_THREAD_DONE   (WM_APP + 1) // фоновый поток завершился
-#define WM_THREAD_POS    (WM_APP + 2)
+#define WM_THREAD_POS    (WM_APP + 2) // рассчитанные координаты отправлены гл. окну
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI MouseMoverThread(LPVOID lpParam);
+
+/*==============================
+        entry point
+==============================*/
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
     (void)hPrevInstance;
@@ -29,7 +37,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     AppState appState = {0};
 
     GetResolution(&appState);
-    CreateMainWindow(&appState, hInstance, L"Жонглёр", WINDOWS_WIDTH, WINDOWS_HEIGHT, WindowProc);
+    CreateMainWindow(&appState, hInstance, WINDOWS_HEADER, WINDOWS_WIDTH, WINDOWS_HEIGHT, WindowProc);
     if (!appState.hwnd) return 0;
     
     CenterWindow(&appState);
@@ -40,14 +48,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
-    }
-    
+    }    
     return 0;
 }
 
 /*==============================
  обработчик событий главного окна
 ==============================*/
+
+static const wchar_t* get_hdr(int wParam) {
+    static const wchar_t err[] = L"Жонглёр (ошибка доступа)";
+    static const wchar_t hdr[] = WINDOWS_HEADER;
+    return (wParam == 0) ? err : hdr;
+}
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     AppState* appState;
@@ -61,12 +74,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     }
     
     switch (uMsg) {
-
         case WM_CREATE:
-            srand(GetTickCount());
-
             appState->hStartButton = CreateWindowW(
-                L"BUTTON", L"Старт",
+                L"BUTTON", BTN_START_TEXT,
                 WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
                 30, 30, BTN_START_WIDTH, BTN_START_HEIGHT,
                 hwnd, (HMENU)1, GetModuleHandle(NULL), NULL
@@ -82,29 +92,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         
         case WM_COMMAND:
             if ((HWND)lParam == appState->hStartButton) {
-
                 if (!appState->hThread) {
                     ResetEvent(appState->hStopEvent); // разрешаем работу                    
                     appState->hThread = CreateThread(NULL, 0, MouseMoverThread, appState, 0, NULL);
-                    SetWindowText(appState->hStartButton, L"Стоп");
-
+                    SetWindowText(appState->hStartButton, BTN_STOP_TEXT);
                 } else {
                     SetEvent(appState->hStopEvent); // сигналим остановку
                     WaitForSingleObject(appState->hThread, INFINITE);
                     CloseHandle(appState->hThread);
                     appState->hThread = NULL;
-                    SetWindowText(appState->hStartButton, L"Старт");
+                    SetWindowText(appState->hStartButton, BTN_START_TEXT);
                 }
             }
         break;
 
         case WM_THREAD_DONE: { // Обработка завершения потока (параметр wParam: 0=ошибка, 1=нормальное завершение)        
             SetEvent(appState->hStopEvent);
-            SetWindowText(appState->hStartButton, L"Старт");
-            
-            const wchar_t hdr_err[] = L"Жонглёр (ошибка доступа)";
-            const wchar_t hdr[] = L"Жонглёр";            
-            SetWindowTextW(hwnd, wParam == 0 ?  hdr_err: hdr);
+            SetWindowText(appState->hStartButton, BTN_START_TEXT);            
+            SetWindowTextW(hwnd, get_hdr(wParam));
 
             if (appState->hThread) {
                 WaitForSingleObject(appState->hThread, INFINITE);
@@ -121,13 +126,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         } break;
     
         case WM_DESTROY:
-
             SetEvent(appState->hStopEvent);
             if (appState->hThread) {
                 WaitForSingleObject(appState->hThread, INFINITE);
                 CloseHandle(appState->hThread);
             }
-
             CloseHandle(appState->hStopEvent);
             PostQuitMessage(0);
         break;
@@ -141,12 +144,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     return 0;
 }
 
-
 /*==============================
  бизнес-логика движения мыши
 ==============================*/
 
-static  inline BOOL IsNeedToMove(POINT * curPos, POINT * oldPos) {
+static inline BOOL IsNeedToMove(POINT * curPos, POINT * oldPos) {
     return (
         labs(curPos->x - oldPos->x) < THRESHOLD
      && labs(curPos->y - oldPos->y) < THRESHOLD

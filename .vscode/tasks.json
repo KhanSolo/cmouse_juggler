@@ -1,5 +1,6 @@
 {
     "version": "2.0.0",
+
     "tasks": [
         {
             "label": "mkdir build (debug)",
@@ -16,7 +17,7 @@
         {
             "label": "Build Debug (clang mingw64)",
             "type": "shell",
-            "command": "C:/msys64/mingw64/bin/clang.exe",
+            "command": "${config:clangPath}",
             "args": [
                 "-g",
                 "-O0",
@@ -29,7 +30,7 @@
 
                 "main.c",
                 "-o",
-                "build/debug/main.exe",
+                "build/debug/${config:outputFile}",
 
                 "-luser32",
                 "-lgdi32"
@@ -60,7 +61,7 @@
         {
             "label": "Build Release (clang mingw64)",
             "type": "shell",
-            "command": "C:/msys64/mingw64/bin/clang.exe",
+            "command": "${config:clangPath}",
             "args": [
                 "-O2",
                 "-DNDEBUG",
@@ -71,7 +72,7 @@
 
                 "main.c",
                 "-o",
-                "build/release/main.exe",
+                "build/release/${config:outputFile}",
 
                 "-luser32",
                 "-lgdi32"
