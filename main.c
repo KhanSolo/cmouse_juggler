@@ -41,7 +41,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     CreateMainWindow(&appState, hInstance, WINDOWS_HEADER, WINDOWS_WIDTH, WINDOWS_HEIGHT, WindowProc);
     if (!appState.hwnd) return -1;
     
-    CenterWindow(&appState);
+    ChangeWindowPosition(&appState);
     ShowWindow(appState.hwnd, nCmdShow);
     UpdateWindow(appState.hwnd);
     
@@ -67,7 +67,6 @@ void InitTrayIcon(AppState* state) {
 
     Shell_NotifyIconW(NIM_ADD, &state->nid);
 }
-
 
 /*==============================
  обработчик событий главного окна
@@ -143,9 +142,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
         case WM_TRAYICON: {
             if (lParam == WM_LBUTTONDBLCLK) {
-                // if(IsIconic(hwnd)){
-                //     ShowWindow(hwnd, SW_RESTORE);
-                // }
                 ShowWindow(hwnd, SW_SHOW);
                 SetForegroundWindow(hwnd);                
             } else
@@ -155,14 +151,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 AppendMenuW(hMenu, MF_STRING, 2, L"Выход");
 
                 POINT pt; GetCursorPos(&pt);
-                //SetForegroundWindow(hwnd);
                 int cmd = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, pt.x, pt.y, 0, hwnd, NULL);
 
                 switch (cmd) {
                     case 1: {
-                        // if(IsIconic(hwnd)){
-                        //     ShowWindow(hwnd, SW_RESTORE);
-                        // }
                         ShowWindow(hwnd, SW_SHOW);
                         SetForegroundWindow(hwnd);   
                         break;

@@ -8,11 +8,11 @@ static inline void GetResolution(AppState *state){
     state->cyscreen = GetSystemMetrics(SM_CYSCREEN);
 }
 
-static inline void CenterWindow(AppState *appState) {
-    RECT rc;
-    GetWindowRect(appState->hwnd, &rc);
-    int xPos = (appState->cxscreen - (int)(rc.right - rc.left)) / 2;
-    int yPos = (appState->cyscreen - (int)(rc.bottom - rc.top)) / 2;
+static inline void ChangeWindowPosition(AppState *appState) {
+    RECT rc; GetWindowRect(appState->hwnd, &rc);
+    const int margin = 70;
+    int xPos = appState->cxscreen - (int)(rc.right - rc.left) - margin/2;
+    int yPos = appState->cyscreen - (int)(rc.bottom - rc.top) - margin;
     SetWindowPos(appState->hwnd, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
