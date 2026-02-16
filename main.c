@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "includes/appstate.h"
 #include "includes/wndutils.h"
+#include "includes/mouse_mover.h"
 
 #define WINDOWS_WIDTH           360
 #define WINDOWS_HEIGHT          150
@@ -16,16 +17,7 @@ const wchar_t WINDOWS_HEADER[]  = L"Жонглёр";
 const wchar_t BTN_START_TEXT[]  = L"Старт";
 const wchar_t BTN_STOP_TEXT[]   = L"Стоп";
 
-#define DEFAULT_MS              10000
-#define SHORT_MS                2000
-#define THRESHOLD               5L
-
-#define WM_THREAD_DONE   (WM_APP + 1) // фоновый поток завершился
-#define WM_THREAD_POS    (WM_APP + 2) // рассчитанные координаты отправлены гл. окну
-#define WM_TRAYICON      (WM_APP + 3)
-
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-DWORD WINAPI MouseMoverThread(LPVOID lpParam);
 
 /*==============================
         entry point
@@ -53,20 +45,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     return (int)msg.wParam;
 }
 
-void InitTrayIcon(AppState* state) {
-    ZeroMemory(&state->nid, sizeof(NOTIFYICONDATAW));
-
-    state->nid.cbSize = sizeof(NOTIFYICONDATAW);
-    state->nid.hWnd = state->hwnd;
-    state->nid.uID = 1;
-    state->nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
-    state->nid.uCallbackMessage = WM_TRAYICON;
-
-    state->nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-    wcscpy_s(state->nid.szTip, 32, WINDOWS_HEADER);
-
-    Shell_NotifyIconW(NIM_ADD, &state->nid);
-}
 
 /*==============================
  обработчик событий главного окна
@@ -90,19 +68,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 TRUE,   // manual-reset
                 TRUE,   // initially signaled (не запущен)
                 NULL    // lpName
-            );            
-            DWORD dwStyle= WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON;
-            if(NULL == appState->hStopEvent) {
-                dwStyle |= WS_DISABLED;
-            } 
-
-            appState->hStartButton = CreateWindowW(
-                L"BUTTON", BTN_START_TEXT, dwStyle,
-                30, 30, BTN_START_WIDTH, BTN_START_HEIGHT,
-                hwnd, (HMENU)1, GetModuleHandle(NULL), NULL
             );
 
-            InitTrayIcon(appState);
+            CreateStartButton(appState, 30, 50, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
+            InitTrayIcon(appState, WINDOWS_HEADER);
         break;
         
         case WM_COMMAND:
@@ -181,62 +150,5 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
      
         default: return DefWindowProcW(hwnd, uMsg, wParam, lParam);
     }
-    return 0;
-}
-
-/*==============================
- бизнес-логика движения мыши
-==============================*/
-
-static inline BOOL IsCursorIdle(const POINT *cur,
-                                const POINT *old)
-{
-    return labs(cur->x - old->x) < THRESHOLD &&
-           labs(cur->y - old->y) < THRESHOLD;
-}
-
-DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
-    AppState* appState = (AppState*)lpParam;
-    POINT oldPos = { 0 };
-    BOOL zigzag = TRUE;
-
-    int threadDoneResult = 1; // нормальное завершение (wParam = 1); 0-ошибка
-
-    while (TRUE) {
-        POINT curPos;
-        if (!GetCursorPos(&curPos)) {
-            threadDoneResult = 0; // ошибка (wParam = 0)
-            break;
-        }
-
-        int sleepMs;
-        if (IsCursorIdle(&curPos, &oldPos)) {
-            if (appState->cxscreen == 0 || appState->cyscreen == 0) {
-                threadDoneResult = 0; // ошибка (wParam = 0)
-                break;
-            }
-            long diff = 2 * (zigzag ? 1 : -1);
-            curPos.x = (curPos.x + diff + appState->cxscreen) % (appState->cxscreen);
-            curPos.y = (curPos.y + diff + appState->cyscreen) % (appState->cyscreen);
-            if(!SetCursorPos((int)curPos.x, (int)curPos.y)){
-                threadDoneResult = 0; // ошибка (wParam = 0)
-                break;
-            }
-            zigzag = !zigzag;
-            sleepMs = SHORT_MS;
-        } else { 
-            sleepMs = DEFAULT_MS;
-        }
-
-        oldPos.x = curPos.x;
-        oldPos.y = curPos.y;
-        PostMessage(appState->hwnd, WM_THREAD_POS, (WPARAM)curPos.x, (LPARAM)curPos.y);
-
-        // Sleep, но с возможностью прерывания
-        if (WaitForSingleObject(appState->hStopEvent, sleepMs) == WAIT_OBJECT_0)
-            break;
-    }
-    PostMessage(appState->hwnd, WM_THREAD_DONE, threadDoneResult, 0);
-
     return 0;
 }
