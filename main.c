@@ -22,6 +22,7 @@ const wchar_t BTN_STOP_TEXT[]   = L"Стоп";
 
 #define WM_THREAD_DONE   (WM_APP + 1) // фоновый поток завершился
 #define WM_THREAD_POS    (WM_APP + 2) // рассчитанные координаты отправлены гл. окну
+#define WM_TRAYICON      (WM_APP + 3)
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI MouseMoverThread(LPVOID lpParam);
@@ -52,6 +53,22 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     return (int)msg.wParam;
 }
 
+void InitTrayIcon(AppState* state) {
+    ZeroMemory(&state->nid, sizeof(NOTIFYICONDATAW));
+
+    state->nid.cbSize = sizeof(NOTIFYICONDATAW);
+    state->nid.hWnd = state->hwnd;
+    state->nid.uID = 1;
+    state->nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+    state->nid.uCallbackMessage = WM_TRAYICON;
+
+    state->nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    wcscpy_s(state->nid.szTip, 32, WINDOWS_HEADER);
+
+    Shell_NotifyIconW(NIM_ADD, &state->nid);
+}
+
+
 /*==============================
  обработчик событий главного окна
 ==============================*/
@@ -79,11 +96,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if(NULL == appState->hStopEvent) {
                 dwStyle |= WS_DISABLED;
             } 
+
             appState->hStartButton = CreateWindowW(
                 L"BUTTON", BTN_START_TEXT, dwStyle,
                 30, 30, BTN_START_WIDTH, BTN_START_HEIGHT,
                 hwnd, (HMENU)1, GetModuleHandle(NULL), NULL
             );
+
+            InitTrayIcon(appState);
         break;
         
         case WM_COMMAND:
@@ -116,17 +136,56 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         break;
 
         case WM_THREAD_POS: { // событие вывода координат в заголовок
-                wchar_t buffer[32];
-                swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"Координаты: %ldx%ld", (long)wParam, (long)lParam);
-                SetWindowText(hwnd, buffer);
+            wchar_t buffer[32];
+            swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"Координаты: %ldx%ld", (long)wParam, (long)lParam);
+            SetWindowText(hwnd, buffer);
         } break;
+
+        case WM_TRAYICON: {
+            if (lParam == WM_LBUTTONDBLCLK) {
+                // if(IsIconic(hwnd)){
+                //     ShowWindow(hwnd, SW_RESTORE);
+                // }
+                ShowWindow(hwnd, SW_SHOW);
+                SetForegroundWindow(hwnd);                
+            } else
+            if (lParam == WM_RBUTTONUP) {
+                HMENU hMenu = CreatePopupMenu();
+                AppendMenuW(hMenu, MF_STRING, 1, L"Показать");
+                AppendMenuW(hMenu, MF_STRING, 2, L"Выход");
+
+                POINT pt; GetCursorPos(&pt);
+                //SetForegroundWindow(hwnd);
+                int cmd = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, pt.x, pt.y, 0, hwnd, NULL);
+
+                switch (cmd) {
+                    case 1: {
+                        // if(IsIconic(hwnd)){
+                        //     ShowWindow(hwnd, SW_RESTORE);
+                        // }
+                        ShowWindow(hwnd, SW_SHOW);
+                        SetForegroundWindow(hwnd);   
+                        break;
+                    }
+                    case 2: DestroyWindow(hwnd); break;
+                }
+
+                DestroyMenu(hMenu);
+            }
+            break;
+        }        
     
         case WM_DESTROY:
             SetEvent(appState->hStopEvent);
             CloseHandle(appState->hStopEvent);
             appState->hStopEvent = NULL;
+            Shell_NotifyIconW(NIM_DELETE, &appState->nid);
             PostQuitMessage(0);
         break;
+
+        case WM_CLOSE:
+            ShowWindow(hwnd, SW_HIDE);
+        return 0;
      
         default: return DefWindowProcW(hwnd, uMsg, wParam, lParam);
     }

@@ -28,7 +28,7 @@ static inline HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, LPCWST
     
     RegisterClassW(&wc);
     return CreateWindowExW(
-        0, CLASS_NAME, lpWindowName,
+        WS_EX_TOOLWINDOW, CLASS_NAME, lpWindowName,
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT, width, height,
         NULL, NULL, hInstance, state
