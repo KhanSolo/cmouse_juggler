@@ -58,14 +58,18 @@
             "type": "shell",
             "command": "${config:clangPath}",
             "args": [
-                "-O2",
+                "-O3",
                 "-DNDEBUG",
-                "-Wall",
+                //"-flto", "-fuse-ld=lld",
+                "-fno-asynchronous-unwind-tables",
+                "-ffunction-sections",
+                "-fdata-sections",
+                "-Wall",                
                 "-mwindows", "-municode",
-
                 "${config:inputFile}",
                 "-o", "build/release/${config:outputFile}",
-                "-luser32", "-lgdi32"
+                "-luser32", "-lgdi32",
+                "'-Wl,--gc-sections'"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
