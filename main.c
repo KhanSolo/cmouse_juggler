@@ -6,10 +6,10 @@
 #include <stdlib.h>
 #include "includes/appstate.h"
 #include "includes/wndutils.h"
-#include "includes/mouse_mover.h"
+#include "includes/mouse_mover_thread.h"
 
 #define WINDOWS_WIDTH           360
-#define WINDOWS_HEIGHT          150
+#define WINDOWS_HEIGHT          170
 const wchar_t WINDOWS_HEADER[]  = L"Жонглёр";
 
 #define BTN_START_WIDTH         280
@@ -45,7 +45,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     return (int)msg.wParam;
 }
 
-
 /*==============================
  обработчик событий главного окна
 ==============================*/
@@ -63,42 +62,42 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     
     switch (uMsg) {
         case WM_CREATE:
-            appState->hStopEvent = CreateEventW(
+            appState->hMouseMoverStopEvent = CreateEventW(
                 NULL,   // default security
                 TRUE,   // manual-reset
                 TRUE,   // initially signaled (не запущен)
                 NULL    // lpName
             );
 
-            CreateStartButton(appState, 30, 50, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
+            CreateStartButton(appState, 30, 70, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
             InitTrayIcon(appState, WINDOWS_HEADER);
         break;
         
         case WM_COMMAND:
             if ((HWND)lParam == appState->hStartButton) {
-                if (!appState->hThread) {                    
-                    ResetEvent(appState->hStopEvent); // разрешаем работу
-                    HANDLE hThread = CreateThread(NULL, 0, MouseMoverThread, appState, 0, NULL);
-                    if (hThread){                        
-                        appState->hThread = hThread;
+                if (!appState->hMouseMoverThread) {                    
+                    ResetEvent(appState->hMouseMoverStopEvent); // разрешаем работу
+                    HANDLE hMouseMoverThread = CreateThread(NULL, 0, MouseMoverThread, appState, 0, NULL);
+                    if (hMouseMoverThread){                        
+                        appState->hMouseMoverThread = hMouseMoverThread;
                         SetWindowText(appState->hStartButton, BTN_STOP_TEXT);
                     }
                 } else {
-                    SetEvent(appState->hStopEvent); // сигналим остановку
+                    SetEvent(appState->hMouseMoverStopEvent); // сигналим остановку
                 }
             }
         break;
 
         case WM_THREAD_DONE: { // Обработка завершения потока (параметр wParam: 0=ошибка, 1=нормальное завершение)        
-            SetEvent(appState->hStopEvent);
+            SetEvent(appState->hMouseMoverStopEvent);
             SetWindowText(appState->hStartButton, BTN_START_TEXT);
             
             static const wchar_t err[] = L"Жонглёр (ошибка доступа)";
             SetWindowTextW(hwnd, (wParam == 0) ? err : WINDOWS_HEADER);
 
-            if (appState->hThread) {
-                CloseHandle(appState->hThread);
-                appState->hThread = NULL;
+            if (appState->hMouseMoverThread) {
+                CloseHandle(appState->hMouseMoverThread);
+                appState->hMouseMoverThread = NULL;
             }
         }
         break;
@@ -137,9 +136,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         }        
     
         case WM_DESTROY:
-            SetEvent(appState->hStopEvent);
-            CloseHandle(appState->hStopEvent);
-            appState->hStopEvent = NULL;
+            SetEvent(appState->hMouseMoverStopEvent);
+            CloseHandle(appState->hMouseMoverStopEvent);
+            appState->hMouseMoverStopEvent = NULL;
             Shell_NotifyIconW(NIM_DELETE, &appState->nid);
             PostQuitMessage(0);
         break;

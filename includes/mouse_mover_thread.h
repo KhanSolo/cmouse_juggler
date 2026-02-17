@@ -1,6 +1,7 @@
 #pragma once
 
 #include <windows.h>
+//#include <time.h>
 #include "appstate.h"
 
 #define DEFAULT_MS              10000
@@ -51,12 +52,11 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
             sleepMs = DEFAULT_MS;
         }
 
-        oldPos.x = curPos.x;
-        oldPos.y = curPos.y;
+        memcpy(&oldPos, &curPos, sizeof(curPos));
         PostMessage(appState->hwnd, WM_THREAD_POS, (WPARAM)curPos.x, (LPARAM)curPos.y);
 
         // Sleep, но с возможностью прерывания
-        if (WaitForSingleObject(appState->hStopEvent, sleepMs) == WAIT_OBJECT_0)
+        if (WaitForSingleObject(appState->hMouseMoverStopEvent, sleepMs) == WAIT_OBJECT_0)
             break;
     }
     PostMessage(appState->hwnd, WM_THREAD_DONE, threadDoneResult, 0);
