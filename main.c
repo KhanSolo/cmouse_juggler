@@ -74,7 +74,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 NULL    // lpName
             );
 
-            CreateStartButton(appState, 30, 70, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
+            CreateStartButton(appState, 30, 80, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
             InitTrayIcon(appState, WINDOWS_HEADER);
         break;
         
@@ -115,13 +115,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
         case WM_TIMER:
             GetLocalTime(&st);
+            InvalidateRect(hwnd, NULL, TRUE);
         break;
 
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
 
-            TCHAR timeBuf[64], dateBuf[64];
+            wchar_t timeBuf[9], dateBuf[20];
 
             // Формат времени: "14:35:22"
             swprintf(timeBuf, sizeof(timeBuf) / sizeof(timeBuf[0]), L"%02d:%02d:%02d", st.wHour, st.wMinute, st.wSecond);
@@ -129,7 +130,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             // Формат даты: "18 февраля 2026"
             swprintf(dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]), L"%02d %s %d",
                         st.wDay,
-                        L"месяца",// + 6*(st.wMonth-1),
+                        L"месяца",
                         st.wYear);
 
             // Часы
