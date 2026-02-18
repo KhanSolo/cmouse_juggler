@@ -49,8 +49,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
  обработчик событий главного окна
 ==============================*/
 
+const int TIMER_ID = 1;
+const int TIMER_INTERVAL_MS = 1000; // раз в секунду
+
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     AppState* appState;
+    static SYSTEMTIME st;
     if (uMsg == WM_NCCREATE){ // Создание неклиентской области, это событие произойдёт до WM_CREATE
             CREATESTRUCTW* cs = (CREATESTRUCTW*)lParam;
             AppState* state = (AppState*)cs->lpCreateParams;
@@ -62,6 +66,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     
     switch (uMsg) {
         case WM_CREATE:
+            SetTimer(hwnd, TIMER_ID, TIMER_INTERVAL_MS, NULL);
             appState->hMouseMoverStopEvent = CreateEventW(
                 NULL,   // default security
                 TRUE,   // manual-reset
@@ -108,6 +113,37 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             SetWindowText(hwnd, buffer);
         } break;
 
+        case WM_TIMER:
+            GetLocalTime(&st);
+        break;
+
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+
+            TCHAR timeBuf[64], dateBuf[64];
+
+            // Формат времени: "14:35:22"
+            swprintf(timeBuf, sizeof(timeBuf) / sizeof(timeBuf[0]), L"%02d:%02d:%02d", st.wHour, st.wMinute, st.wSecond);
+
+            // Формат даты: "18 февраля 2026"
+            swprintf(dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]), L"%02d %s %d",
+                        st.wDay,
+                        L"месяца",// + 6*(st.wMonth-1),
+                        st.wYear);
+
+            // Часы
+            SetBkMode(hdc, TRANSPARENT);
+            SetTextColor(hdc, RGB(0, 0, 0));
+            TextOut(hdc, 20, 20, timeBuf, sizeof(timeBuf) / sizeof(timeBuf[0]));
+
+            // Календарь (просто строка с датой и месяцем)
+            TextOut(hdc, 20, 60, dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]));
+
+            EndPaint(hwnd, &ps);
+            return 0;
+        }
+
         case WM_TRAYICON: {
             if (lParam == WM_LBUTTONDBLCLK) {
                 ShowWindow(hwnd, SW_SHOW);
@@ -138,6 +174,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_DESTROY:
             SetEvent(appState->hMouseMoverStopEvent);
             CloseHandle(appState->hMouseMoverStopEvent);
+            KillTimer(hwnd, TIMER_ID);
             appState->hMouseMoverStopEvent = NULL;
             Shell_NotifyIconW(NIM_DELETE, &appState->nid);
             PostQuitMessage(0);
