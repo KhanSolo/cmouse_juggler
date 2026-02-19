@@ -38,7 +38,7 @@ static inline HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, LPCWST
 }
 
 static inline void CreateClockText(AppState *state){
-
+    (void)state;
 }
 
 static inline void CreateStartButton(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){

@@ -50,7 +50,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 ==============================*/
 
 const int TIMER_ID = 1;
-const int TIMER_INTERVAL_MS = 1000; // раз в секунду
+const int TIMER_INTERVAL_MS = 100; // раз в секунду
+
+const wchar_t* months[] = {
+    L"января", L"февраля", L"марта", L"апреля",
+    L"мая", L"июня", L"июля", L"августа",
+    L"сентября", L"октября", L"ноября", L"декабря"
+};
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     AppState* appState;
@@ -122,24 +128,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
 
-            wchar_t timeBuf[9], dateBuf[20];
+            wchar_t timeBuf[16] = {0,}, dateBuf[32] = {0,};
 
             // Формат времени: "14:35:22"
             swprintf(timeBuf, sizeof(timeBuf) / sizeof(timeBuf[0]), L"%02d:%02d:%02d", st.wHour, st.wMinute, st.wSecond);
 
             // Формат даты: "18 февраля 2026"
-            swprintf(dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]), L"%02d %s %d",
-                        st.wDay,
-                        L"месяца",
-                        st.wYear);
+            const wchar_t* month = months[st.wMonth - 1];
+            swprintf(dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]), L"%02d %ls %d", st.wDay, month, st.wYear);
 
             // Часы
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, RGB(0, 0, 0));
-            TextOut(hdc, 20, 20, timeBuf, sizeof(timeBuf) / sizeof(timeBuf[0]));
+            TextOutW(hdc, 20, 20, timeBuf, wcslen(timeBuf));
 
             // Календарь (просто строка с датой и месяцем)
-            TextOut(hdc, 20, 60, dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]));
+            TextOutW(hdc, 20, 60, dateBuf, wcslen(dateBuf));
 
             EndPaint(hwnd, &ps);
             return 0;
