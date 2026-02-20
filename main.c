@@ -121,7 +121,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
         case WM_TIMER:
             GetLocalTime(&st);
-            InvalidateRect(hwnd, NULL, TRUE);
+            if (IsWindowVisible(hwnd) && !IsIconic(hwnd)) {
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
         break;
 
         case WM_PAINT: {

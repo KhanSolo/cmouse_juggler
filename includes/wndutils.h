@@ -55,7 +55,7 @@ static inline void CreateStartButton(AppState *state, const int xPos, const int 
 }
 
 static inline void InitTrayIcon(AppState* state, const wchar_t * szTip) {
-    ZeroMemory(&state->nid, sizeof(NOTIFYICONDATAW));
+    memset(&state->nid,0,sizeof(NOTIFYICONDATAW));
 
     state->nid.cbSize = sizeof(NOTIFYICONDATAW);
     state->nid.hWnd = state->hwnd;
