@@ -10,9 +10,9 @@ static inline void GetResolution(AppState *state){
 
 static inline void ChangeWindowPosition(const AppState *appState) {
     RECT rc; GetWindowRect(appState->hwnd, &rc);
-    const int margin = 70;
-    int xPos = appState->cxscreen - (int)(rc.right - rc.left) - margin/2;
-    int yPos = appState->cyscreen - (int)(rc.bottom - rc.top) - margin;
+    const int ymargin = 70, xmargin = 35;
+    int xPos = appState->cxscreen - (int)(rc.right - rc.left) - xmargin;
+    int yPos = appState->cyscreen - (int)(rc.bottom - rc.top) - ymargin;
     SetWindowPos(appState->hwnd, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
@@ -20,7 +20,6 @@ static inline HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, LPCWST
     const int width, const int height, WNDPROC windowProc
 ) {
     const wchar_t CLASS_NAME[] = L"MouseJugglerWindow";
-
     WNDCLASSW wc = {0};
     wc.lpfnWndProc = windowProc;
     wc.hInstance = hInstance;
@@ -37,9 +36,13 @@ static inline HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, LPCWST
     );
 }
 
-static inline void CreateClockText(AppState *state){
-    (void)state;
-}
+// static inline void CreateClockText(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){    
+//     state->hClockText = CreateWindowW(
+//         L"TEXT", text, dwStyle,
+//         xPos, yPos, width, height,
+//         state->hwnd, (HMENU)1, GetModuleHandle(NULL), NULL
+//     );
+// }
 
 static inline void CreateStartButton(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){
     DWORD dwStyle= WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON;
@@ -60,8 +63,24 @@ static inline void InitTrayIcon(AppState* state, const wchar_t * szTip) {
     state->nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
     state->nid.uCallbackMessage = WM_TRAYICON;
 
-    state->nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    state->nid.hIcon = LoadIcon(NULL, IDI_ASTERISK);
     wcscpy_s(state->nid.szTip, 32, szTip);
 
     Shell_NotifyIconW(NIM_ADD, &state->nid);
+}
+
+static inline HFONT CreateNewFont(int cHeight)
+{
+    HFONT hFont = CreateFontW(
+        cHeight, 0, 0, 0,
+        FW_NORMAL,
+        FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        VARIABLE_PITCH,
+        L"Segoe UI"
+    );
+    return hFont;
 }

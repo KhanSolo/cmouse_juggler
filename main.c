@@ -128,22 +128,31 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
 
-            wchar_t timeBuf[16] = {0,}, dateBuf[32] = {0,};
+            wchar_t timeBuf[10] = {0,}, dateBuf[20] = {0,};
 
             // Формат времени: "14:35:22"
             swprintf(timeBuf, sizeof(timeBuf) / sizeof(timeBuf[0]), L"%02d:%02d:%02d", st.wHour, st.wMinute, st.wSecond);
 
             // Формат даты: "18 февраля 2026"
-            const wchar_t* month = months[st.wMonth - 1];
+            const wchar_t* month = (st.wMonth - 1) < 0 ? L"" : months[st.wMonth - 1];
             swprintf(dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]), L"%02d %ls %d", st.wDay, month, st.wYear);
 
-            // Часы
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, RGB(0, 0, 0));
+            HFONT hFont = CreateNewFont(32);
+
+            HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
+
+            // Часы
             TextOutW(hdc, 20, 20, timeBuf, wcslen(timeBuf));
 
+            hFont = CreateNewFont(20);
+            SelectObject(hdc, hFont);
             // Календарь (просто строка с датой и месяцем)
             TextOutW(hdc, 20, 60, dateBuf, wcslen(dateBuf));
+
+            SelectObject(hdc, hOldFont);
+            DeleteObject(hFont);
 
             EndPaint(hwnd, &ps);
             return 0;
