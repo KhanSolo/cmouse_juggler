@@ -7,6 +7,7 @@
 #include "includes/appstate.h"
 #include "includes/wndutils.h"
 #include "includes/mouse_mover_thread.h"
+#include "includes/time_calculator_thread.h"
 
 #define WINDOWS_WIDTH           360
 #define WINDOWS_HEIGHT          170
@@ -41,22 +42,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
-    }    
+    }
     return (int)msg.wParam;
 }
 
 /*==============================
  обработчик событий главного окна
 ==============================*/
-
-const int TIMER_ID = 1;
-const int TIMER_INTERVAL_MS = 100; // раз в секунду
-
-const wchar_t* months[] = {
-    L"января", L"февраля", L"марта", L"апреля",
-    L"мая", L"июня", L"июля", L"августа",
-    L"сентября", L"октября", L"ноября", L"декабря"
-};
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     AppState* appState;
@@ -71,8 +63,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     }
     
     switch (uMsg) {
-        case WM_CREATE:
-            SetTimer(hwnd, TIMER_ID, TIMER_INTERVAL_MS, NULL);
+        case WM_CREATE: {
+            GetLocalTime(&st);
+            WORD interval = 1000 - st.wMilliseconds;
+            SetTimer(hwnd, TIMER_ID, interval, NULL);
+
+                wchar_t buffer[128] = {0,};
+                swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"WM_CREATE interval: %ld", (long)interval);
+                OutputDebugStringW(buffer);
+
             appState->hMouseMoverStopEvent = CreateEventW(
                 NULL,   // default security
                 TRUE,   // manual-reset
@@ -82,9 +81,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
             CreateStartButton(appState, 30, 80, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
             InitTrayIcon(appState, WINDOWS_HEADER);
-        break;
+        } break;
         
-        case WM_COMMAND:
+        case WM_COMMAND: {
             if ((HWND)lParam == appState->hStartButton) {
                 if (!appState->hMouseMoverThread) {                    
                     ResetEvent(appState->hMouseMoverStopEvent); // разрешаем работу
@@ -97,7 +96,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                     SetEvent(appState->hMouseMoverStopEvent); // сигналим остановку
                 }
             }
-        break;
+        } break;
 
         case WM_THREAD_DONE: { // Обработка завершения потока (параметр wParam: 0=ошибка, 1=нормальное завершение)        
             SetEvent(appState->hMouseMoverStopEvent);
@@ -110,21 +109,34 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 CloseHandle(appState->hMouseMoverThread);
                 appState->hMouseMoverThread = NULL;
             }
-        }
-        break;
+        } break;
 
         case WM_THREAD_POS: { // событие вывода координат в заголовок
-            wchar_t buffer[32];
+            wchar_t buffer[32] = {0,};
             swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"Координаты: %ldx%ld", (long)wParam, (long)lParam);
             SetWindowText(hwnd, buffer);
         } break;
 
-        case WM_TIMER:
-            GetLocalTime(&st);
-            if (IsWindowVisible(hwnd) && !IsIconic(hwnd)) {
-                InvalidateRect(hwnd, NULL, TRUE);
-            }
-        break;
+        case WM_TIMER: {
+            if (wParam == TIMER_ID) {
+                GetLocalTime(&st);
+
+                    wchar_t buffer[128] = {0,};
+                    swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), 
+                    L"WM_TIMER st: %ld:%ld:%ld.%ld", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+                    OutputDebugStringW(buffer);
+
+                if (IsWindowVisible(hwnd) && !IsIconic(hwnd)) {
+                    InvalidateRect(hwnd, NULL, TRUE);
+                }
+                if (current_timer_interval != TIMER_INTERVAL_MS) {
+                    KillTimer(hwnd, TIMER_ID);
+                    current_timer_interval = TIMER_INTERVAL_MS;
+                    SetTimer(hwnd, TIMER_ID, current_timer_interval, NULL);
+                    OutputDebugStringW(L"WM_TIMER SetTimer!\n");
+                }
+            }            
+        } break;
 
         case WM_PAINT: {
             PAINTSTRUCT ps;
@@ -167,6 +179,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             } else
             if (lParam == WM_RBUTTONUP) {
                 HMENU hMenu = CreatePopupMenu();
+       
                 AppendMenuW(hMenu, MF_STRING, 1, L"Показать");
                 AppendMenuW(hMenu, MF_STRING, 2, L"Выход");
 
