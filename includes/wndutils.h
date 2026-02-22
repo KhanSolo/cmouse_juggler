@@ -1,6 +1,7 @@
 #pragma once
 
 #include <windows.h>
+#include <wchar.h>
 #include "appstate.h"
 
 static inline void GetResolution(AppState *state){
@@ -94,4 +95,16 @@ static inline HFONT CreateNewFont(int cHeight) {
         L"Segoe UI"
     );
     return hFont;
+}
+
+static inline int OutputDebug(const wchar_t *format, ...) {
+    va_list args;
+    va_start(args, format);           // инициализация va_list
+    wchar_t buffer[64] = {0,};
+    int result = vswprintf(
+        buffer, sizeof(buffer) / sizeof(buffer[0]), 
+        format, args);  // вызов версии с va_list
+    va_end(args);
+    OutputDebugStringW(buffer);
+    return result;
 }

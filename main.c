@@ -74,12 +74,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_CREATE: {
             SYSTEMTIME *pst = &appState->st;
             GetLocalTime(pst);
-            WORD interval = TIMER_INTERVAL_MS - pst->wMilliseconds;
-            SetTimer(hwnd, TIMER_ID, interval, NULL);
+            WORD interval = TIMER_CLOCK_INTERVAL_MS - pst->wMilliseconds;
+            SetTimer(hwnd, TIMER_CLOCK_ID, interval, NULL);
 
-                wchar_t buffer[64] = {0,};
-                swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"WM_CREATE interval: %ld", interval);
-                OutputDebugStringW(buffer);
+            OutputDebug(L"WM_CREATE interval: %ld", interval);
 
             appState->hMouseMoverStopEvent = CreateEventW(
                 NULL,   // default security
@@ -128,36 +126,31 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         } break;
 
         case WM_TIMER: {
-            if (wParam == TIMER_ID) {
+            if (wParam == TIMER_CLOCK_ID) {
                 SYSTEMTIME *pst = &appState->st;
                 GetLocalTime(pst);
-
-                    wchar_t buffer[64] = {0,};
-                    swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), 
-                    L"WM_TIMER st: %ld:%ld:%ld.%ld", pst->wHour, pst->wMinute, pst->wSecond, pst->wMilliseconds);
-                    OutputDebugStringW(buffer);
+                OutputDebug(L"WM_TIMER st: %ld:%ld:%ld.%ld", pst->wHour, pst->wMinute, pst->wSecond, pst->wMilliseconds);
 
                 if (IsWindowVisible(hwnd) && !IsIconic(hwnd)) {
                     InvalidateRect(hwnd, NULL, TRUE);
                 }
 
-                BOOL isNeedToAdjustTimer = current_timer_interval != TIMER_INTERVAL_MS 
+                BOOL isNeedToAdjustTimer = timer_clock_current_timer_interval != TIMER_CLOCK_INTERVAL_MS 
                                             ||
-                                           pst->wMilliseconds > TIMER_INTERVAL_MS / 2;
+                                           pst->wMilliseconds > TIMER_CLOCK_INTERVAL_MS / 2;
                 if (isNeedToAdjustTimer) {
-                    KillTimer(hwnd, TIMER_ID);
-                    int adjustment = TIMER_INTERVAL_MS - pst->wMilliseconds;
-                    current_timer_interval = TIMER_INTERVAL_MS + (
-                        adjustment > (TIMER_INTERVAL_MS / 2) ? 0 : adjustment
+                    KillTimer(hwnd, TIMER_CLOCK_ID);
+                    int adjustment = TIMER_CLOCK_INTERVAL_MS - pst->wMilliseconds;
+                    timer_clock_current_timer_interval = TIMER_CLOCK_INTERVAL_MS + (
+                        adjustment > (TIMER_CLOCK_INTERVAL_MS / 2) ? 0 : adjustment
                     );
-                    SetTimer(hwnd, TIMER_ID, current_timer_interval, NULL);
+                    SetTimer(hwnd, TIMER_CLOCK_ID, timer_clock_current_timer_interval, NULL);
 
-                    wchar_t buffer[64] = {0,};
-                    swprintf(buffer,
-                             sizeof(buffer) / sizeof(buffer[0]), 
-                             L"WM_TIMER SetTimer %ld", current_timer_interval);
-                    OutputDebugStringW(buffer);
+                    OutputDebug(L"WM_TIMER SetTimer %ld", timer_clock_current_timer_interval);
                 }
+            } else
+            if (wParam == TIMER_MOUSE_ID) {
+
             }
         } break;
 
@@ -226,7 +219,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_DESTROY:
             SetEvent(appState->hMouseMoverStopEvent);
             CloseHandle(appState->hMouseMoverStopEvent);
-            KillTimer(hwnd, TIMER_ID);
+            KillTimer(hwnd, TIMER_CLOCK_ID);
             appState->hMouseMoverStopEvent = NULL;
             Shell_NotifyIconW(NIM_DELETE, &appState->nid);
             PostQuitMessage(0);

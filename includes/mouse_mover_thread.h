@@ -1,16 +1,14 @@
 #pragma once
 
 #include <windows.h>
-//#include <time.h>
 #include "appstate.h"
+
+#define TIMER_MOUSE_ID          2
 
 #define DEFAULT_MS              10000
 #define SHORT_MS                2000
 #define THRESHOLD               5L
 
-/*==============================
- бизнес-логика движения мыши
-==============================*/
 
 static inline BOOL IsCursorIdle(const POINT *cur,
                                 const POINT *old)
