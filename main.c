@@ -7,7 +7,7 @@
 #include "includes/appstate.h"
 #include "includes/wndutils.h"
 #include "includes/mouse_mover_thread.h"
-#include "includes/time_calculator_thread.h"
+#include "includes/time_calculator_timer.h"
 
 #define WINDOWS_WIDTH           360
 #define WINDOWS_HEIGHT          170
@@ -28,7 +28,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     (void)hPrevInstance;
     (void)lpCmdLine;
 
-    AppState appState = {0};
+    AppState appState = {
+        .timers = { 
+            {   .timerId = 1, .interval = 0, .enabled = FALSE },  // timerId=1 clock updater
+            {   .timerId = 2, .interval = 0, .enabled = FALSE }   // timerId=2 mouse mover
+        }
+    };
 
     GetResolution(&appState);
     CreateMainWindow(&appState, hInstance, WINDOWS_HEADER, WINDOWS_WIDTH, WINDOWS_HEIGHT, WindowProc);
@@ -50,26 +55,30 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
  обработчик событий главного окна
 ==============================*/
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    AppState* appState;
-    static SYSTEMTIME st;
-    if (uMsg == WM_NCCREATE){ // Создание неклиентской области, это событие произойдёт до WM_CREATE
+static AppState* SaveAppStateForWindow(HWND hwnd, UINT uMsg, LPARAM lParam) {
+    if (uMsg == WM_NCCREATE) { // Создание неклиентской области, это событие произойдёт до WM_CREATE
             CREATESTRUCTW* cs = (CREATESTRUCTW*)lParam;
-            AppState* state = (AppState*)cs->lpCreateParams;
-            state->hwnd = hwnd;
-            SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)state);
+            AppState* appState = (AppState*)cs->lpCreateParams;
+            appState->hwnd = hwnd;
+            SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)appState);
+            return appState;
     } else {
-        appState = (AppState*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+        return (AppState*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
     }
+}
+
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    AppState* appState = SaveAppStateForWindow(hwnd, uMsg, lParam);
     
     switch (uMsg) {
         case WM_CREATE: {
-            GetLocalTime(&st);
-            WORD interval = 1000 - st.wMilliseconds;
+            SYSTEMTIME *pst = &appState->st;
+            GetLocalTime(pst);
+            WORD interval = TIMER_INTERVAL_MS - pst->wMilliseconds;
             SetTimer(hwnd, TIMER_ID, interval, NULL);
 
-                wchar_t buffer[128] = {0,};
-                swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"WM_CREATE interval: %ld", (long)interval);
+                wchar_t buffer[64] = {0,};
+                swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"WM_CREATE interval: %ld", interval);
                 OutputDebugStringW(buffer);
 
             appState->hMouseMoverStopEvent = CreateEventW(
@@ -78,7 +87,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 TRUE,   // initially signaled (не запущен)
                 NULL    // lpName
             );
-
+            // todo CreateClockText
+            // todo CreateDateText
             CreateStartButton(appState, 30, 80, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
             InitTrayIcon(appState, WINDOWS_HEADER);
         } break;
@@ -113,34 +123,47 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
         case WM_THREAD_POS: { // событие вывода координат в заголовок
             wchar_t buffer[32] = {0,};
-            swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"Координаты: %ldx%ld", (long)wParam, (long)lParam);
+            swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"Координаты: %ldx%ld", wParam, lParam);
             SetWindowText(hwnd, buffer);
         } break;
 
         case WM_TIMER: {
             if (wParam == TIMER_ID) {
-                GetLocalTime(&st);
+                SYSTEMTIME *pst = &appState->st;
+                GetLocalTime(pst);
 
-                    wchar_t buffer[128] = {0,};
+                    wchar_t buffer[64] = {0,};
                     swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), 
-                    L"WM_TIMER st: %ld:%ld:%ld.%ld", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+                    L"WM_TIMER st: %ld:%ld:%ld.%ld", pst->wHour, pst->wMinute, pst->wSecond, pst->wMilliseconds);
                     OutputDebugStringW(buffer);
 
                 if (IsWindowVisible(hwnd) && !IsIconic(hwnd)) {
                     InvalidateRect(hwnd, NULL, TRUE);
                 }
-                if (current_timer_interval != TIMER_INTERVAL_MS) {
+
+                BOOL isNeedToAdjustTimer = current_timer_interval != TIMER_INTERVAL_MS 
+                                            ||
+                                           pst->wMilliseconds > TIMER_INTERVAL_MS / 2;
+                if (isNeedToAdjustTimer) {
                     KillTimer(hwnd, TIMER_ID);
-                    current_timer_interval = TIMER_INTERVAL_MS;
+                    int adjustment = TIMER_INTERVAL_MS - pst->wMilliseconds;
+                    current_timer_interval = TIMER_INTERVAL_MS + (
+                        adjustment > (TIMER_INTERVAL_MS / 2) ? 0 : adjustment
+                    );
                     SetTimer(hwnd, TIMER_ID, current_timer_interval, NULL);
-                    OutputDebugStringW(L"WM_TIMER SetTimer!\n");
+
+                    wchar_t buffer[64] = {0,};
+                    swprintf(buffer,
+                             sizeof(buffer) / sizeof(buffer[0]), 
+                             L"WM_TIMER SetTimer %ld", current_timer_interval);
+                    OutputDebugStringW(buffer);
                 }
-            }            
+            }
         } break;
 
         case WM_PAINT: {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hwnd, &ps);
+            SYSTEMTIME st = appState->st;
+            PAINTSTRUCT ps;  HDC hdc = BeginPaint(hwnd, &ps);
 
             wchar_t timeBuf[10] = {0,}, dateBuf[20] = {0,};
 

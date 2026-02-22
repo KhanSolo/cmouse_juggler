@@ -25,24 +25,36 @@ static inline HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, LPCWST
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);    
     
-    RegisterClassW(&wc);
-    return CreateWindowExW(
-        WS_EX_TOOLWINDOW, CLASS_NAME, lpWindowName,
-        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+    ATOM atom = RegisterClassW(&wc);
+    if(!atom) return NULL;
+
+    DWORD dwStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
+    return CreateWindowExW(WS_EX_TOOLWINDOW,
+        CLASS_NAME, lpWindowName, dwStyle,
         CW_USEDEFAULT, CW_USEDEFAULT, width, height,
         NULL, NULL, hInstance, state
     );
 }
 
-// static inline void CreateClockText(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){    
-//     state->hClockText = CreateWindowW(
-//         L"TEXT", text, dwStyle,
-//         xPos, yPos, width, height,
-//         state->hwnd, (HMENU)1, GetModuleHandle(NULL), NULL
-//     );
-// }
+static inline void CreateClockText(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){
+    DWORD dwStyle = 0;
+    state->hClockText = CreateWindowW(
+        L"STATIC", text, dwStyle,
+        xPos, yPos, width, height,
+        state->hwnd, (HMENU)1, GetModuleHandle(NULL), NULL
+    );
+}
+
+static inline void CreateCalendarText(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){
+    DWORD dwStyle = 0;
+    state->hClockText = CreateWindowW(
+        L"STATIC", text, dwStyle,
+        xPos, yPos, width, height,
+        state->hwnd, (HMENU)1, GetModuleHandle(NULL), NULL
+    );
+}
 
 static inline void CreateStartButton(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){
     DWORD dwStyle= WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON;
@@ -55,7 +67,7 @@ static inline void CreateStartButton(AppState *state, const int xPos, const int 
 }
 
 static inline void InitTrayIcon(AppState* state, const wchar_t * szTip) {
-    memset(&state->nid,0,sizeof(NOTIFYICONDATAW));
+    memset(&state->nid, 0, sizeof(NOTIFYICONDATAW));
 
     state->nid.cbSize = sizeof(NOTIFYICONDATAW);
     state->nid.hWnd = state->hwnd;
@@ -69,8 +81,7 @@ static inline void InitTrayIcon(AppState* state, const wchar_t * szTip) {
     Shell_NotifyIconW(NIM_ADD, &state->nid);
 }
 
-static inline HFONT CreateNewFont(int cHeight)
-{
+static inline HFONT CreateNewFont(int cHeight) {
     HFONT hFont = CreateFontW(
         cHeight, 0, 0, 0,
         FW_NORMAL,
