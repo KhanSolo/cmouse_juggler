@@ -13,8 +13,8 @@ typedef struct State {
     int cxscreen, cyscreen; // размер экрана    
     HWND hwnd;              // дескриптор окна
     HWND hStartButton;      // дескриптор кнопки Старт/Стоп
-    HWND hClockText;        // часы (STATIC)
-    HWND hCalendarText;        // календарь (STATIC)
+    HWND hClockLabel;        // часы (STATIC)
+    HWND hCalendarLabel;        // календарь (STATIC)
 
     HANDLE hMouseMoverThread;     // дескриптор потока
     HANDLE hMouseMoverStopEvent;   // событие остановки потока, если установлено, то поток завершает работу

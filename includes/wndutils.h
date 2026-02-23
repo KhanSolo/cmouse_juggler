@@ -4,6 +4,9 @@
 #include <wchar.h>
 #include "appstate.h"
 
+#define IDC_LABEL_CLOCK 1001
+#define IDC_LABEL_CALENDAR 1002
+
 static inline void GetResolution(AppState *state){
     state->cxscreen = GetSystemMetrics(SM_CXSCREEN);
     state->cyscreen = GetSystemMetrics(SM_CYSCREEN);
@@ -39,9 +42,8 @@ static inline HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, LPCWST
     );
 }
 
-#define IDC_LABEL_CLOCK 1001
 static inline void CreateClockText(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){
-    state->hClockText = CreateWindowExW(
+    state->hClockLabel = CreateWindowExW(
         0,                          // dwExStyle
         L"STATIC",                  // lpClassName
         text,                       // lpWindowName (текст)
@@ -54,15 +56,11 @@ static inline void CreateClockText(AppState *state, const int xPos, const int yP
         NULL                        // lpParam
     );
 
-            // hFont = CreateFontW(-18, 0, 0, 0, FW_EXTRABOLD, 0, 0, 0,
-            // RUSSIAN_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-            // CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
-    SendMessage(state->hClockText, WM_SETFONT, (WPARAM)state->hClockFont, TRUE);
+    SendMessageW(state->hClockLabel, WM_SETFONT, (WPARAM)state->hClockFont, TRUE);
 }
 
-#define IDC_LABEL_CALENDAR 1002
 static inline void CreateCalendarText(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){
-    state->hCalendarText = CreateWindowEx(
+    state->hCalendarLabel = CreateWindowEx(
         0,                          // dwExStyle
         L"STATIC",                  // lpClassName
         text,                       // lpWindowName (текст)
@@ -75,7 +73,7 @@ static inline void CreateCalendarText(AppState *state, const int xPos, const int
         NULL                        // lpParam
     );
 
-    SendMessage(state->hCalendarText, WM_SETFONT, (WPARAM)state->hCalendarFont, TRUE);
+    SendMessageW(state->hCalendarLabel, WM_SETFONT, (WPARAM)state->hCalendarFont, TRUE);
 }
 
 static inline void CreateStartButton(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){

@@ -30,11 +30,11 @@ static void ProcessTimerClock(AppState *appState) {
     // 2. Обновляем все тексты
     wchar_t timeBuf[10] = {0,}, dateBuf[20] = {0,};
     swprintf(timeBuf, sizeof(timeBuf) / sizeof(timeBuf[0]), L"%02d:%02d:%02d", pst->wHour, pst->wMinute, pst->wSecond);
-    SetDlgItemTextW(hwnd, 1001, timeBuf);
+    SetDlgItemTextW(hwnd, IDC_LABEL_CLOCK, timeBuf);
 
     const wchar_t* month = (pst->wMonth - 1) < 0 ? L"" : months[pst->wMonth - 1];
     swprintf(dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]), L"%02d %ls %d", pst->wDay, month, pst->wYear);
-    SetDlgItemTextW(hwnd, 1002, dateBuf);
+    SetDlgItemTextW(hwnd, IDC_LABEL_CALENDAR, dateBuf);
     
     // 3. Включаем рисование + мгновенная перерисовка
     SendMessage(hwnd, WM_SETREDRAW, TRUE, 0);

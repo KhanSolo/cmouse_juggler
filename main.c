@@ -96,12 +96,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_CTLCOLORSTATIC: {
             if ((HWND)lParam == GetDlgItem(hwnd, IDC_LABEL_CLOCK)) {
                 SetBkMode((HDC)wParam, TRANSPARENT);
-                SetTextColor((HDC)wParam, RGB(50, 150, 255));
+                SetTextColor((HDC)wParam, RGB(100, 0, 0));
                 return (LRESULT)GetStockObject(NULL_BRUSH);
             } else
             if ((HWND)lParam == GetDlgItem(hwnd, IDC_LABEL_CALENDAR)) {
                 SetBkMode((HDC)wParam, TRANSPARENT);
-                SetTextColor((HDC)wParam, RGB(50, 150, 255));
+                SetTextColor((HDC)wParam, RGB(100, 0, 0));
                 return (LRESULT)GetStockObject(NULL_BRUSH);
             }
         }break;
@@ -146,38 +146,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 case TIMER_MOUSE_ID: { ProcessTimerMouseMover(appState); } break;
             }
         } break;
-
-        /*
-        case WM_PAINT: {
-            
-            SYSTEMTIME st = appState->st;
-            PAINTSTRUCT ps;  HDC hdc = BeginPaint(hwnd, &ps);
-
-            wchar_t timeBuf[10] = {0,}, dateBuf[20] = {0,};
-
-            // Формат времени: "14:35:22"
-            swprintf(timeBuf, sizeof(timeBuf) / sizeof(timeBuf[0]), L"%02d:%02d:%02d", st.wHour, st.wMinute, st.wSecond);
-
-            // Формат даты: "18 февраля 2026"
-            const wchar_t* month = (st.wMonth - 1) < 0 ? L"" : months[st.wMonth - 1];
-            swprintf(dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]), L"%02d %ls %d", st.wDay, month, st.wYear);
-
-            SetBkMode(hdc, TRANSPARENT);
-            SetTextColor(hdc, RGB(0, 0, 0));
-
-            HFONT hClockFont = appState->hClockFont;
-            HFONT hOldFont = (HFONT)SelectObject(hdc, hClockFont);
-            TextOutW(hdc, 20, 15, timeBuf, wcslen(timeBuf));  // Часы
-
-            HFONT hCalendarFont = appState->hCalendarFont;
-            SelectObject(hdc, hCalendarFont);            
-            TextOutW(hdc, 20, 55, dateBuf, wcslen(dateBuf)); // Календарь
-
-            SelectObject(hdc, hOldFont);
-
-            EndPaint(hwnd, &ps);
-            
-        } break;    */    
 
         case WM_TRAYICON: {
             if (lParam == WM_LBUTTONDBLCLK) {
