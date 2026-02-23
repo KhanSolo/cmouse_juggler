@@ -14,11 +14,12 @@ typedef struct State {
     HWND hwnd;              // дескриптор окна
     HWND hStartButton;      // дескриптор кнопки Старт/Стоп
     HWND hClockText;        // часы (STATIC)
+    HWND hCalendarText;        // календарь (STATIC)
+
     HANDLE hMouseMoverThread;     // дескриптор потока
-
     HANDLE hMouseMoverStopEvent;   // событие остановки потока, если установлено, то поток завершает работу
-    NOTIFYICONDATAW nid;   // иконка в tray
 
+    NOTIFYICONDATAW nid;   // иконка в tray
     TimerState timers[2]; // 1й таймер для часов и календаря, 2й таймер для mouse mover
     SYSTEMTIME st;
 

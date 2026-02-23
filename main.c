@@ -30,8 +30,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
     AppState appState = {
         .timers = { 
-            {   .timerId = 1, .interval = 0, .enabled = FALSE },  // timerId=1 clock updater
-            {   .timerId = 2, .interval = 0, .enabled = FALSE }   // timerId=2 mouse mover
+            {   .timerId = TIMER_CLOCK_ID, .interval = 0, .enabled = FALSE },
+            {   .timerId = TIMER_MOUSE_ID, .interval = 0, .enabled = FALSE }
         },
         .hClockFont = CreateNewFont(36),
         .hCalendarFont = CreateNewFont(20)
@@ -87,11 +87,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 TRUE,   // initially signaled (не запущен)
                 NULL    // lpName
             );
-            // todo CreateClockText
-            // todo CreateDateText
-            CreateStartButton(appState, 30, 80, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
+            CreateClockText(appState, 30, 10, BTN_START_WIDTH, BTN_START_HEIGHT, L"Часы");
+            CreateCalendarText(appState, 30, 50, BTN_START_WIDTH, BTN_START_HEIGHT, L"Календарь");
+            CreateStartButton(appState, 30, 90, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
             InitTrayIcon(appState, WINDOWS_HEADER);
         } break;
+
+        case WM_CTLCOLORSTATIC: {
+            if ((HWND)lParam == GetDlgItem(hwnd, IDC_LABEL_CLOCK)) {
+                SetBkMode((HDC)wParam, TRANSPARENT);
+                SetTextColor((HDC)wParam, RGB(50, 150, 255));
+                return (LRESULT)GetStockObject(NULL_BRUSH);
+            } else
+            if ((HWND)lParam == GetDlgItem(hwnd, IDC_LABEL_CALENDAR)) {
+                SetBkMode((HDC)wParam, TRANSPARENT);
+                SetTextColor((HDC)wParam, RGB(50, 150, 255));
+                return (LRESULT)GetStockObject(NULL_BRUSH);
+            }
+        }break;
         
         case WM_COMMAND: {
             if ((HWND)lParam == appState->hStartButton) {
@@ -128,35 +141,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         } break;
 
         case WM_TIMER: {
-            if (wParam == TIMER_CLOCK_ID) {
-                SYSTEMTIME *pst = &appState->st;
-                GetLocalTime(pst);
-                OutputDebug(L"WM_TIMER st: %ld:%ld:%ld.%ld", pst->wHour, pst->wMinute, pst->wSecond, pst->wMilliseconds);
-
-                if (IsWindowVisible(hwnd) && !IsIconic(hwnd)) {
-                    InvalidateRect(hwnd, NULL, TRUE);
-                }
-
-                BOOL isNeedToAdjustTimer = timer_clock_current_timer_interval != TIMER_CLOCK_INTERVAL_MS 
-                                            ||
-                                           pst->wMilliseconds > TIMER_CLOCK_INTERVAL_MS / 2;
-                if (isNeedToAdjustTimer) {
-                    KillTimer(hwnd, TIMER_CLOCK_ID);
-                    int adjustment = TIMER_CLOCK_INTERVAL_MS - pst->wMilliseconds;
-                    timer_clock_current_timer_interval = TIMER_CLOCK_INTERVAL_MS + (
-                        adjustment > (TIMER_CLOCK_INTERVAL_MS / 2) ? 0 : adjustment
-                    );
-                    SetTimer(hwnd, TIMER_CLOCK_ID, timer_clock_current_timer_interval, NULL);
-
-                    OutputDebug(L"WM_TIMER SetTimer %ld", timer_clock_current_timer_interval);
-                }
-            } else
-            if (wParam == TIMER_MOUSE_ID) {
-
+            switch (wParam) {
+                case TIMER_CLOCK_ID: { ProcessTimerClock(appState); } break;
+                case TIMER_MOUSE_ID: { ProcessTimerMouseMover(appState); } break;
             }
         } break;
 
+        /*
         case WM_PAINT: {
+            
             SYSTEMTIME st = appState->st;
             PAINTSTRUCT ps;  HDC hdc = BeginPaint(hwnd, &ps);
 
@@ -183,8 +176,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             SelectObject(hdc, hOldFont);
 
             EndPaint(hwnd, &ps);
-            return 0;
-        }
+            
+        } break;    */    
 
         case WM_TRAYICON: {
             if (lParam == WM_LBUTTONDBLCLK) {
@@ -194,26 +187,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if (lParam == WM_RBUTTONUP) {
                 HMENU hMenu = CreatePopupMenu();
        
-                AppendMenuW(hMenu, MF_STRING, 1, L"Показать");
-                AppendMenuW(hMenu, MF_STRING, 2, L"Выход");
+                #define MENU_SHOW 1
+                #define MENU_EXIT 2
+
+                AppendMenuW(hMenu, MF_STRING, MENU_SHOW, L"Показать");
+                AppendMenuW(hMenu, MF_STRING, MENU_EXIT, L"Выход");
 
                 POINT pt; GetCursorPos(&pt);
                 int cmd = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY, pt.x, pt.y, 0, hwnd, NULL);
 
                 switch (cmd) {
-                    case 1: {
+                    case MENU_SHOW: {
                         ShowWindow(hwnd, SW_SHOW);
-                        SetForegroundWindow(hwnd);   
+                        SetForegroundWindow(hwnd);
+                        PostMessage(hwnd, WM_NULL, 0, 0);  // Фиксит Z-order
                         break;
                     }
-                    case 2: DestroyWindow(hwnd); break;
+                    case MENU_EXIT: DestroyWindow(hwnd); break;
                 }
-
+                
                 DestroyMenu(hMenu);
             }
             break;
-        }        
-    
+        }
+
         case WM_DESTROY:
             SetEvent(appState->hMouseMoverStopEvent);
             CloseHandle(appState->hMouseMoverStopEvent);
@@ -229,7 +226,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
         case WM_CLOSE:
             ShowWindow(hwnd, SW_HIDE);
-        return 0;
+        break;
      
         default: return DefWindowProcW(hwnd, uMsg, wParam, lParam);
     }

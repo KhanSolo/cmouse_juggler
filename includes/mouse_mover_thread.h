@@ -61,3 +61,7 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
 
     return 0;
 }
+
+static void ProcessTimerMouseMover(AppState *appState) {
+    (void)appState;
+}
