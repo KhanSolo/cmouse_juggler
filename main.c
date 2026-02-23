@@ -32,7 +32,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         .timers = { 
             {   .timerId = 1, .interval = 0, .enabled = FALSE },  // timerId=1 clock updater
             {   .timerId = 2, .interval = 0, .enabled = FALSE }   // timerId=2 mouse mover
-        }
+        },
+        .hClockFont = CreateNewFont(36),
+        .hCalendarFont = CreateNewFont(20)
     };
 
     GetResolution(&appState);
@@ -169,20 +171,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, RGB(0, 0, 0));
-            HFONT hFont = CreateNewFont(32);
 
-            HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
+            HFONT hClockFont = appState->hClockFont;
+            HFONT hOldFont = (HFONT)SelectObject(hdc, hClockFont);
+            TextOutW(hdc, 20, 15, timeBuf, wcslen(timeBuf));  // Часы
 
-            // Часы
-            TextOutW(hdc, 20, 20, timeBuf, wcslen(timeBuf));
-
-            hFont = CreateNewFont(20);
-            SelectObject(hdc, hFont);
-            // Календарь (просто строка с датой и месяцем)
-            TextOutW(hdc, 20, 60, dateBuf, wcslen(dateBuf));
+            HFONT hCalendarFont = appState->hCalendarFont;
+            SelectObject(hdc, hCalendarFont);            
+            TextOutW(hdc, 20, 55, dateBuf, wcslen(dateBuf)); // Календарь
 
             SelectObject(hdc, hOldFont);
-            DeleteObject(hFont);
 
             EndPaint(hwnd, &ps);
             return 0;
@@ -221,6 +219,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             CloseHandle(appState->hMouseMoverStopEvent);
             KillTimer(hwnd, TIMER_CLOCK_ID);
             appState->hMouseMoverStopEvent = NULL;
+
+            DeleteObject(appState->hCalendarFont);
+            DeleteObject(appState->hClockFont);
+
             Shell_NotifyIconW(NIM_DELETE, &appState->nid);
             PostQuitMessage(0);
         break;
