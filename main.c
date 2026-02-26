@@ -10,10 +10,10 @@
 #include "includes/time_calculator_timer.h"
 
 #define WINDOWS_WIDTH           360
-#define WINDOWS_HEIGHT          170
+#define WINDOWS_HEIGHT          200
 const wchar_t WINDOWS_HEADER[]  = L"Жонглёр";
 
-#define BTN_START_WIDTH         280
+#define BTN_START_WIDTH         300
 #define BTN_START_HEIGHT        40
 const wchar_t BTN_START_TEXT[]  = L"Старт";
 const wchar_t BTN_STOP_TEXT[]   = L"Стоп";
@@ -33,7 +33,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
             {   .timerId = TIMER_CLOCK_ID, .interval = 0, .enabled = FALSE },
             {   .timerId = TIMER_MOUSE_ID, .interval = 0, .enabled = FALSE }
         },
-        .hClockFont = CreateNewFont(36),
+        .hClockFont = CreateNewFont(60),
         .hCalendarFont = CreateNewFont(20)
     };
 
@@ -87,21 +87,21 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 TRUE,   // initially signaled (не запущен)
                 NULL    // lpName
             );
-            CreateClockText(appState, 30, 10, BTN_START_WIDTH, BTN_START_HEIGHT, L"Часы");
-            CreateCalendarText(appState, 30, 50, BTN_START_WIDTH, BTN_START_HEIGHT, L"Календарь");
-            CreateStartButton(appState, 30, 90, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
+            CreateClockText(appState, 20, 10, BTN_START_WIDTH, 60, L"Часы");
+            CreateCalendarText(appState, 20, 80, BTN_START_WIDTH, BTN_START_HEIGHT, L"Календарь");
+            CreateStartButton(appState, 20, 120, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
             InitTrayIcon(appState, WINDOWS_HEADER);
         } break;
 
         case WM_CTLCOLORSTATIC: {
             if ((HWND)lParam == GetDlgItem(hwnd, IDC_LABEL_CLOCK)) {
                 SetBkMode((HDC)wParam, TRANSPARENT);
-                SetTextColor((HDC)wParam, RGB(100, 0, 0));
+                SetTextColor((HDC)wParam, RGB(0, 0, 0));
                 return (LRESULT)GetStockObject(NULL_BRUSH);
             } else
             if ((HWND)lParam == GetDlgItem(hwnd, IDC_LABEL_CALENDAR)) {
                 SetBkMode((HDC)wParam, TRANSPARENT);
-                SetTextColor((HDC)wParam, RGB(100, 0, 0));
+                SetTextColor((HDC)wParam, RGB(0, 0, 0));
                 return (LRESULT)GetStockObject(NULL_BRUSH);
             }
         }break;
