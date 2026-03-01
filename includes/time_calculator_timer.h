@@ -21,7 +21,7 @@ const wchar_t* days[] = {
 static void ProcessTimerClock(AppState *appState) {
     SYSTEMTIME *pst = &appState->st;
     GetLocalTime(pst);
-    OutputDebug(L"WM_TIMER st: %ld:%ld:%ld.%ld", pst->wHour, pst->wMinute, pst->wSecond, pst->wMilliseconds);
+    OutputDebug(L"WM_TIMER st: %02d:%02d:%02d.%03d", pst->wHour, pst->wMinute, pst->wSecond, pst->wMilliseconds);
 
     HWND hwnd = appState->hwnd;
 
@@ -59,6 +59,6 @@ static void ProcessTimerClock(AppState *appState) {
         );
         SetTimer(hwnd, TIMER_CLOCK_ID, timer_clock_current_timer_interval, NULL);
 
-        OutputDebug(L"WM_TIMER SetTimer %ld", timer_clock_current_timer_interval);
+        OutputDebug(L"WM_TIMER SetTimer %d", timer_clock_current_timer_interval);
     }
 }

@@ -33,7 +33,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
             {   .timerId = TIMER_CLOCK_ID, .interval = 0, .enabled = FALSE },
             {   .timerId = TIMER_MOUSE_ID, .interval = 0, .enabled = FALSE }
         },
-        .hClockFont = CreateNewFont(60),
+        .hClockFont = CreateNewFont(64),
         .hCalendarFont = CreateNewFont(20)
     };
 
@@ -87,9 +87,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 TRUE,   // initially signaled (не запущен)
                 NULL    // lpName
             );
-            CreateClockText(appState, 20, 10, BTN_START_WIDTH, 60, L"Часы");
-            CreateCalendarText(appState, 20, 80, BTN_START_WIDTH, BTN_START_HEIGHT, L"Календарь");
-            CreateStartButton(appState, 20, 120, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
+            CreateClockText(appState, 20, 5, BTN_START_WIDTH, 60, L"Часы");
+            CreateCalendarText(appState, 20, 70, BTN_START_WIDTH, BTN_START_HEIGHT, L"Календарь");
+            CreateStartButton(appState, 20, 110, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
             InitTrayIcon(appState, WINDOWS_HEADER);
         } break;
 
