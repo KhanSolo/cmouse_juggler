@@ -24,9 +24,26 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
         entry point
 ==============================*/
 
+#define MUTEX_NAME "Global\\{1A3C5F20-7E7F-4F1A-8F9A-123456789ABC}"
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
     (void)hPrevInstance;
     (void)lpCmdLine;
+
+    const wchar_t CLASS_NAME[] = L"MouseJugglerWindow";
+
+    HANDLE hMutex = CreateMutexA(NULL, TRUE, MUTEX_NAME);
+    if (GetLastError() == ERROR_ALREADY_EXISTS)
+    {
+        HWND hwnd = FindWindowW(CLASS_NAME, NULL);
+
+        if (hwnd) {
+            ShowWindow(hwnd, SW_RESTORE);
+            SetForegroundWindow(hwnd);
+        }
+
+        return 0;
+    }
 
     AppState appState = {
         .timers = { 
@@ -38,8 +55,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     };
 
     GetResolution(&appState);
-    CreateMainWindow(&appState, hInstance, WINDOWS_HEADER, WINDOWS_WIDTH, WINDOWS_HEIGHT, WindowProc);
-    if (!appState.hwnd) return -1;
+    CreateMainWindow(&appState, hInstance, CLASS_NAME, WINDOWS_HEADER, WINDOWS_WIDTH, WINDOWS_HEIGHT, WindowProc);
+    if (!appState.hwnd) {
+        ReleaseMutex(hMutex);
+        CloseHandle(hMutex);
+        return -1;
+    }
     
     ChangeWindowPosition(&appState);
     ShowWindow(appState.hwnd, nCmdShow);
@@ -50,6 +71,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
+
+    ReleaseMutex(hMutex);
+    CloseHandle(hMutex);
     return (int)msg.wParam;
 }
 

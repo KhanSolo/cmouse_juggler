@@ -20,23 +20,24 @@ static inline void ChangeWindowPosition(const AppState *appState) {
     SetWindowPos(appState->hwnd, NULL, xPos, yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
-static inline HWND CreateMainWindow(AppState *state, HINSTANCE hInstance, LPCWSTR lpWindowName, 
+static inline HWND CreateMainWindow(AppState * const state, HINSTANCE hInstance, 
+    LPCWSTR lpWindowClassName, LPCWSTR lpWindowName, 
     const int width, const int height, WNDPROC windowProc
-) {
-    const wchar_t CLASS_NAME[] = L"MouseJugglerWindow";
-    WNDCLASSW wc = {0};
-    wc.lpfnWndProc = windowProc;
-    wc.hInstance = hInstance;
-    wc.lpszClassName = CLASS_NAME;
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);    
+) {    
+    WNDCLASSW wc = {
+        .hInstance = hInstance,
+        .lpszClassName = lpWindowClassName,
+        .hbrBackground = (HBRUSH)(COLOR_WINDOW + 1),
+        .hCursor = LoadCursor(NULL, IDC_ARROW),
+        .lpfnWndProc = windowProc,
+    };
     
     ATOM atom = RegisterClassW(&wc);
     if(!atom) return NULL;
 
     DWORD dwStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
     return CreateWindowExW(WS_EX_TOOLWINDOW,
-        CLASS_NAME, lpWindowName, dwStyle,
+        lpWindowClassName, lpWindowName, dwStyle,
         CW_USEDEFAULT, CW_USEDEFAULT, width, height,
         NULL, NULL, hInstance, state
     );
