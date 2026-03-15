@@ -50,7 +50,7 @@ static void ProcessTimerClock(AppState *appState) {
 
     BOOL isNeedToAdjustTimer = timer_clock_current_timer_interval != TIMER_CLOCK_INTERVAL_MS 
                                 ||
-                                pst->wMilliseconds > TIMER_CLOCK_INTERVAL_MS / 2;
+                                pst->wMilliseconds > TIMER_CLOCK_INTERVAL_MS / 3;
     if (isNeedToAdjustTimer) {
         KillTimer(hwnd, TIMER_CLOCK_ID);
         int adjustment = TIMER_CLOCK_INTERVAL_MS - pst->wMilliseconds;

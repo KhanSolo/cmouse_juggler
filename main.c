@@ -24,24 +24,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
         entry point
 ==============================*/
 
-#define MUTEX_NAME "Global\\{1A3C5F20-7E7F-4F1A-8F9A-123456789ABC}"
-
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
     (void)hPrevInstance;
     (void)lpCmdLine;
 
-    const wchar_t CLASS_NAME[] = L"MouseJugglerWindow";
-
-    HANDLE hMutex = CreateMutexA(NULL, TRUE, MUTEX_NAME);
-    if (GetLastError() == ERROR_ALREADY_EXISTS)
-    {
-        HWND hwnd = FindWindowW(CLASS_NAME, NULL);
-
-        if (hwnd) {
-            ShowWindow(hwnd, SW_RESTORE);
-            SetForegroundWindow(hwnd);
-        }
-
+    const wchar_t mainWindowClassName[] = L"MouseJugglerWindow";
+    HANDLE hSingleInstanceMutex = {0};
+    if(!IsSingleInstance(mainWindowClassName, &hSingleInstanceMutex)) {
         return 0;
     }
 
@@ -55,10 +44,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     };
 
     GetResolution(&appState);
-    CreateMainWindow(&appState, hInstance, CLASS_NAME, WINDOWS_HEADER, WINDOWS_WIDTH, WINDOWS_HEIGHT, WindowProc);
+    CreateMainWindow(&appState, hInstance, mainWindowClassName, WINDOWS_HEADER, WINDOWS_WIDTH, WINDOWS_HEIGHT, WindowProc);
     if (!appState.hwnd) {
-        ReleaseMutex(hMutex);
-        CloseHandle(hMutex);
+        ReleaseMutex(hSingleInstanceMutex);
+        CloseHandle(hSingleInstanceMutex);
         return -1;
     }
     
@@ -72,26 +61,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         DispatchMessage(&msg);
     }
 
-    ReleaseMutex(hMutex);
-    CloseHandle(hMutex);
+    ReleaseMutex(hSingleInstanceMutex);
+    CloseHandle(hSingleInstanceMutex);
     return (int)msg.wParam;
 }
 
 /*==============================
  обработчик событий главного окна
 ==============================*/
-
-static AppState* SaveAppStateForWindow(HWND hwnd, UINT uMsg, LPARAM lParam) {
-    if (uMsg == WM_NCCREATE) { // Создание неклиентской области, это событие произойдёт до WM_CREATE
-            CREATESTRUCTW* cs = (CREATESTRUCTW*)lParam;
-            AppState* appState = (AppState*)cs->lpCreateParams;
-            appState->hwnd = hwnd;
-            SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)appState);
-            return appState;
-    } else {
-        return (AppState*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-    }
-}
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     AppState* appState = SaveAppStateForWindow(hwnd, uMsg, lParam);

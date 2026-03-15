@@ -8,7 +8,7 @@
 #define DEFAULT_MS              10000
 #define SHORT_MS                2000
 #define THRESHOLD               5L
-
+#define SHIFT                   2L
 
 static inline BOOL IsCursorIdle(const POINT *cur,
                                 const POINT *old)
@@ -37,7 +37,7 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
                 threadDoneResult = 0; // ошибка (wParam = 0)
                 break;
             }
-            long diff = 2 * (zigzag ? 1 : -1);
+            long diff = SHIFT * (zigzag ? 1L : -1L);
             curPos.x = (curPos.x + diff + appState->cxscreen) % (appState->cxscreen);
             curPos.y = (curPos.y + diff + appState->cyscreen) % (appState->cyscreen);
             if(!SetCursorPos((int)curPos.x, (int)curPos.y)){

@@ -43,6 +43,18 @@ static inline HWND CreateMainWindow(AppState * const state, HINSTANCE hInstance,
     );
 }
 
+static AppState* SaveAppStateForWindow(HWND hwnd, UINT uMsg, LPARAM lParam) {
+    if (uMsg == WM_NCCREATE) { // Создание неклиентской области, это событие произойдёт до WM_CREATE
+            CREATESTRUCTW* cs = (CREATESTRUCTW*)lParam;
+            AppState* appState = (AppState*)cs->lpCreateParams;
+            appState->hwnd = hwnd;
+            SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)appState);
+            return appState;
+    } else {
+        return (AppState*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+    }
+}
+
 static inline void CreateClockText(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){
     state->hClockLabel = CreateWindowExW(
         0,                          // dwExStyle
@@ -127,4 +139,19 @@ static inline int OutputDebug(const wchar_t *format, ...) {
     va_end(args);
     OutputDebugStringW(buffer);
     return result;
+}
+
+#define MUTEX_NAME "Global\\{1A3C5F20-7E7F-4F1A-8F9A-123456789ABC}"
+int IsSingleInstance(LPCWSTR mainWimdowClassName, HANDLE *hMutex) {
+    *hMutex = CreateMutexA(NULL, TRUE, MUTEX_NAME);
+    if (GetLastError() == ERROR_ALREADY_EXISTS)
+    {
+        HWND hwnd = FindWindowW(mainWimdowClassName, NULL);
+        if (hwnd) {
+            ShowWindow(hwnd, SW_RESTORE);
+            SetForegroundWindow(hwnd);
+        }
+        return FALSE;
+    }
+    return TRUE;
 }
