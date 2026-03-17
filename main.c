@@ -18,7 +18,7 @@ const wchar_t WINDOWS_HEADER[]  = L"Жонглёр";
 const wchar_t BTN_START_TEXT[]  = L"Старт";
 const wchar_t BTN_STOP_TEXT[]   = L"Стоп";
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 /*==============================
         entry point
@@ -43,14 +43,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         .hCalendarFont = CreateNewFont(20)
     };
 
-    GetResolution(&appState);
     CreateMainWindow(&appState, hInstance, mainWindowClassName, WINDOWS_HEADER, WINDOWS_WIDTH, WINDOWS_HEIGHT, WindowProc);
     if (!appState.hwnd) {
-        ReleaseMutex(hSingleInstanceMutex);
-        CloseHandle(hSingleInstanceMutex);
+        FreeMutex(hSingleInstanceMutex);
         return -1;
     }
     
+    GetResolution(&appState);
     ChangeWindowPosition(&appState);
     ShowWindow(appState.hwnd, nCmdShow);
     UpdateWindow(appState.hwnd);
@@ -61,8 +60,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         DispatchMessage(&msg);
     }
 
-    ReleaseMutex(hSingleInstanceMutex);
-    CloseHandle(hSingleInstanceMutex);
+    FreeMutex(hSingleInstanceMutex);
     return (int)msg.wParam;
 }
 
@@ -70,7 +68,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
  обработчик событий главного окна
 ==============================*/
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     AppState* appState = SaveAppStateForWindow(hwnd, uMsg, lParam);
     
     switch (uMsg) {
@@ -88,8 +86,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 TRUE,   // initially signaled (не запущен)
                 NULL    // lpName
             );
-            CreateClockText(appState, 20, 5, BTN_START_WIDTH, 60, L"Часы");
-            CreateCalendarText(appState, 20, 70, BTN_START_WIDTH, BTN_START_HEIGHT, L"Календарь");
+            CreateClockText(appState, 20, 5, BTN_START_WIDTH, 60);
+            CreateCalendarText(appState, 20, 70, BTN_START_WIDTH, BTN_START_HEIGHT);
             CreateStartButton(appState, 20, 110, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
             InitTrayIcon(appState, WINDOWS_HEADER);
         } break;

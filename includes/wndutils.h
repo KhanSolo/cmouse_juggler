@@ -55,14 +55,12 @@ static AppState* SaveAppStateForWindow(HWND hwnd, UINT uMsg, LPARAM lParam) {
     }
 }
 
-static inline void CreateClockText(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){
+static inline void CreateClockText(AppState *state, const int xPos, const int yPos, const int width, const int height) {
+    const wchar_t * text = L""; // todo
     state->hClockLabel = CreateWindowExW(
-        0,                          // dwExStyle
-        L"STATIC",                  // lpClassName
-        text,                       // lpWindowName (текст)
+        0,  L"STATIC", text,              // dwExStyle // lpClassName // lpWindowName (текст)
         WS_CHILD | WS_VISIBLE | SS_LEFT,  // dwStyle (левый выравнивание)
-        xPos, yPos,                 // x, y
-        width, height,              // ширина, высота
+        xPos, yPos, width, height,        // x, y, ширина, высота
         state->hwnd,                // родительское окно
         (HMENU)IDC_LABEL_CLOCK,     // hMenu (ID контрола)
         GetModuleHandle(NULL),      // hInstance
@@ -72,14 +70,12 @@ static inline void CreateClockText(AppState *state, const int xPos, const int yP
     SendMessageW(state->hClockLabel, WM_SETFONT, (WPARAM)state->hClockFont, TRUE);
 }
 
-static inline void CreateCalendarText(AppState *state, const int xPos, const int yPos, const int width, const int height, const wchar_t * text){
+static inline void CreateCalendarText(AppState *state, const int xPos, const int yPos, const int width, const int height) {
+    const wchar_t * text = L""; // todo 
     state->hCalendarLabel = CreateWindowEx(
-        0,                          // dwExStyle
-        L"STATIC",                  // lpClassName
-        text,                       // lpWindowName (текст)
+        0,  L"STATIC", text,              // dwExStyle // lpClassName // lpWindowName (текст)
         WS_CHILD | WS_VISIBLE | SS_LEFT,  // dwStyle (левый выравнивание)
-        xPos, yPos,                 // x, y
-        width, height,              // ширина, высота
+        xPos, yPos, width, height,        // x, y, ширина, высота
         state->hwnd,                // родительское окно
         (HMENU)IDC_LABEL_CALENDAR,  // hMenu (ID контрола)
         GetModuleHandle(NULL),      // hInstance
@@ -155,3 +151,5 @@ int IsSingleInstance(LPCWSTR mainWimdowClassName, HANDLE *hMutex) {
     }
     return TRUE;
 }
+
+static void FreeMutex (HANDLE hMutex) { ReleaseMutex(hMutex); CloseHandle(hMutex); }
