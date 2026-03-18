@@ -1,11 +1,12 @@
-#pragma once
+#ifndef WNDUTILS_H
+#define WNDUTILS_H
 
 #include <windows.h>
 #include <wchar.h>
 #include "appstate.h"
 
-#define IDC_LABEL_CLOCK 1001
-#define IDC_LABEL_CALENDAR 1002
+#define IDC_LABEL_CLOCK     1001
+#define IDC_LABEL_CALENDAR  1002
 
 static inline void GetResolution(AppState *state){
     state->cxscreen = GetSystemMetrics(SM_CXSCREEN);
@@ -55,35 +56,29 @@ static AppState* SaveAppStateForWindow(HWND hwnd, UINT uMsg, LPARAM lParam) {
     }
 }
 
-typedef LPCWSTR (*systime2str)(SYSTEMTIME *);
+typedef LPCWSTR (*systime2str)(SYSTEMTIME*, wchar_t*, const size_t);
+
+HWND CreateStatic(HWND hwnd, LPCWSTR text, const int xPos, const int yPos, const int width, const int height, long long hmenu) {
+    return CreateWindowExW(
+        0,  L"STATIC", text,                // dwExStyle, lpClassName, lpWindowName (текст)
+        WS_CHILD | WS_VISIBLE | SS_LEFT,    // dwStyle (левый выравнивание)
+        xPos, yPos, width, height,          // x, y, ширина, высота
+        hwnd, (HMENU)hmenu,                 // родительское окно, hMenu (ID контрола)
+        GetModuleHandle(NULL), NULL         // hInstance, lpParam
+    );
+}
 
 static inline void CreateClockText(AppState *state, const int xPos, const int yPos, const int width, const int height, const systime2str func) {
-    const wchar_t * text = (*func)(&state->st);
-    state->hClockLabel = CreateWindowExW(
-        0,  L"STATIC", text,              // dwExStyle // lpClassName // lpWindowName (текст)
-        WS_CHILD | WS_VISIBLE | SS_LEFT,  // dwStyle (левый выравнивание)
-        xPos, yPos, width, height,        // x, y, ширина, высота
-        state->hwnd,                // родительское окно
-        (HMENU)IDC_LABEL_CLOCK,     // hMenu (ID контрола)
-        GetModuleHandle(NULL),      // hInstance
-        NULL                        // lpParam
-    );
-
+    wchar_t buf[10] = {0,};
+    LPCWSTR text = (*func)(&state->st, buf, sizeof(buf) / sizeof(buf[0]));
+    state->hClockLabel = CreateStatic(state->hwnd, text, xPos, yPos, width, height, IDC_LABEL_CLOCK);
     SendMessageW(state->hClockLabel, WM_SETFONT, (WPARAM)state->hClockFont, TRUE);
 }
 
 static inline void CreateCalendarText(AppState *state, const int xPos, const int yPos, const int width, const int height, const systime2str func) {
-    const wchar_t * text = (*func)(&state->st);
-    state->hCalendarLabel = CreateWindowEx(
-        0,  L"STATIC", text,              // dwExStyle // lpClassName // lpWindowName (текст)
-        WS_CHILD | WS_VISIBLE | SS_LEFT,  // dwStyle (левый выравнивание)
-        xPos, yPos, width, height,        // x, y, ширина, высота
-        state->hwnd,                // родительское окно
-        (HMENU)IDC_LABEL_CALENDAR,  // hMenu (ID контрола)
-        GetModuleHandle(NULL),      // hInstance
-        NULL                        // lpParam
-    );
-
+    wchar_t buf[32] = {0,};
+    LPCWSTR text = (*func)(&state->st, buf, sizeof(buf) / sizeof(buf[0]));
+    state->hCalendarLabel = CreateStatic(state->hwnd, text, xPos, yPos, width, height, IDC_LABEL_CALENDAR);
     SendMessageW(state->hCalendarLabel, WM_SETFONT, (WPARAM)state->hCalendarFont, TRUE);
 }
 
@@ -155,3 +150,5 @@ int IsSingleInstance(LPCWSTR mainWimdowClassName, HANDLE *hMutex) {
 }
 
 static void FreeMutex (HANDLE hMutex) { ReleaseMutex(hMutex); CloseHandle(hMutex); }
+
+#endif

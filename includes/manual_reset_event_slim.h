@@ -1,3 +1,5 @@
+/*
+
 #pragma once
 
 #include <windows.h>
@@ -39,3 +41,5 @@ BOOL MRES_Wait(ManualResetEventSlim * mres, DWORD dwMilliseconds) {
     DWORD result = WaitForSingleObject(mres->hEvent, dwMilliseconds);
     return (result == WAIT_OBJECT_0);
 }
+
+*/

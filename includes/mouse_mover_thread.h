@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MOUSE_MOVER_H
+#define MOUSE_MOVER_H
 
 #include <windows.h>
 #include "appstate.h"
@@ -65,3 +66,5 @@ DWORD WINAPI MouseMoverThread(LPVOID lpParam) {
 static void ProcessTimerMouseMover(AppState *appState) {
     (void)appState;
 }
+
+#endif

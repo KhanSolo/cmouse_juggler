@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TIME_CALCULATOR_TIMER_H
+#define TIME_CALCULATOR_TIMER_H
 
 #include <windows.h>
 #include "appstate.h"
@@ -18,14 +19,18 @@ const wchar_t* days[] = {
     L"среда", L"четверг", L"пятница", L"суббота"
 };
 
-static LPCWSTR st2clck(SYSTEMTIME *pst){
-    // todo
-    return L"clock";
+static LPCWSTR st2clck(SYSTEMTIME *pst, wchar_t* buf, const size_t len) {
+    swprintf(buf, len, L"%02d:%02d:%02d", pst->wHour, pst->wMinute, pst->wSecond);
+    return buf;
 }
 
-static LPCWSTR st2clnd(SYSTEMTIME *pst){
-    // todo
-    return L"calendar";
+static LPCWSTR st2clnd(SYSTEMTIME *pst, wchar_t* dateBuf, const size_t len) {
+    WORD dow = pst->wDayOfWeek;
+    const wchar_t* dayOfWeek = (dow < 0 || dow > 6) ? L"" : days[dow];
+
+    const wchar_t* month = (pst->wMonth - 1) < 0 ? L"" : months[pst->wMonth - 1];
+    swprintf(dateBuf, len, L"%ls, %02d %ls %d", dayOfWeek, pst->wDay, month, pst->wYear);
+    return dateBuf;
 }
 
 static void ProcessTimerClock(AppState *appState) {
@@ -43,14 +48,10 @@ static void ProcessTimerClock(AppState *appState) {
         
         // 2. Обновляем все тексты
         wchar_t timeBuf[10] = {0,}, dateBuf[32] = {0,};
-        swprintf(timeBuf, sizeof(timeBuf) / sizeof(timeBuf[0]), L"%02d:%02d:%02d", pst->wHour, pst->wMinute, pst->wSecond);
+        st2clck(pst, timeBuf, sizeof(timeBuf) / sizeof(timeBuf[0]));        
         SetDlgItemTextW(hwnd, IDC_LABEL_CLOCK, timeBuf);
 
-        WORD dow = pst->wDayOfWeek;
-        const wchar_t* dayOfWeek = (dow < 0 || dow > 6) ? L"" : days[dow];
-
-        const wchar_t* month = (pst->wMonth - 1) < 0 ? L"" : months[pst->wMonth - 1];
-        swprintf(dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]), L"%ls, %02d %ls %d", dayOfWeek, pst->wDay, month, pst->wYear);
+        st2clnd(pst, dateBuf, sizeof(dateBuf) / sizeof(dateBuf[0]));
         SetDlgItemTextW(hwnd, IDC_LABEL_CALENDAR, dateBuf);
         
         // 3. Включаем рисование + мгновенная перерисовка
@@ -72,3 +73,5 @@ static void ProcessTimerClock(AppState *appState) {
         OutputDebug(L"WM_TIMER SetTimer %d", timer_clock_current_timer_interval);
     }
 }
+
+#endif
