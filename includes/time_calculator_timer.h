@@ -18,6 +18,16 @@ const wchar_t* days[] = {
     L"среда", L"четверг", L"пятница", L"суббота"
 };
 
+static LPCWSTR st2clck(SYSTEMTIME *pst){
+    // todo
+    return L"clock";
+}
+
+static LPCWSTR st2clnd(SYSTEMTIME *pst){
+    // todo
+    return L"calendar";
+}
+
 static void ProcessTimerClock(AppState *appState) {
     SYSTEMTIME *pst = &appState->st;
     GetLocalTime(pst);

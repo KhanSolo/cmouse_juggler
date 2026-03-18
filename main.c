@@ -86,8 +86,8 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
                 TRUE,   // initially signaled (не запущен)
                 NULL    // lpName
             );
-            CreateClockText(appState, 20, 5, BTN_START_WIDTH, 60);
-            CreateCalendarText(appState, 20, 70, BTN_START_WIDTH, BTN_START_HEIGHT);
+            CreateClockText(appState, 20, 5, BTN_START_WIDTH, 60, st2clck);
+            CreateCalendarText(appState, 20, 70, BTN_START_WIDTH, BTN_START_HEIGHT, st2clnd);
             CreateStartButton(appState, 20, 110, BTN_START_WIDTH, BTN_START_HEIGHT, BTN_START_TEXT);
             InitTrayIcon(appState, WINDOWS_HEADER);
         } break;

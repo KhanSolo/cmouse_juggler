@@ -55,8 +55,10 @@ static AppState* SaveAppStateForWindow(HWND hwnd, UINT uMsg, LPARAM lParam) {
     }
 }
 
-static inline void CreateClockText(AppState *state, const int xPos, const int yPos, const int width, const int height) {
-    const wchar_t * text = L""; // todo
+typedef LPCWSTR (*systime2str)(SYSTEMTIME *);
+
+static inline void CreateClockText(AppState *state, const int xPos, const int yPos, const int width, const int height, const systime2str func) {
+    const wchar_t * text = (*func)(&state->st);
     state->hClockLabel = CreateWindowExW(
         0,  L"STATIC", text,              // dwExStyle // lpClassName // lpWindowName (текст)
         WS_CHILD | WS_VISIBLE | SS_LEFT,  // dwStyle (левый выравнивание)
@@ -70,8 +72,8 @@ static inline void CreateClockText(AppState *state, const int xPos, const int yP
     SendMessageW(state->hClockLabel, WM_SETFONT, (WPARAM)state->hClockFont, TRUE);
 }
 
-static inline void CreateCalendarText(AppState *state, const int xPos, const int yPos, const int width, const int height) {
-    const wchar_t * text = L""; // todo 
+static inline void CreateCalendarText(AppState *state, const int xPos, const int yPos, const int width, const int height, const systime2str func) {
+    const wchar_t * text = (*func)(&state->st);
     state->hCalendarLabel = CreateWindowEx(
         0,  L"STATIC", text,              // dwExStyle // lpClassName // lpWindowName (текст)
         WS_CHILD | WS_VISIBLE | SS_LEFT,  // dwStyle (левый выравнивание)
